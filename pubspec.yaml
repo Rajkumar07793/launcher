@@ -35,6 +35,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   provider: ^6.1.1
+  speech_to_text: ^7.3.0
+  intl: ^0.18.1
+  palette_generator_master: ^1.0.1
 
 dev_dependencies:
   flutter_test:

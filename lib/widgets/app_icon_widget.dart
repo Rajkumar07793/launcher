@@ -6,6 +6,7 @@ class AppIconWidget extends StatelessWidget {
   final String packageName;
   final double size;
   final VoidCallback? onSwipeUp;
+  final VoidCallback? onLongPress;
 
   const AppIconWidget({
     Key? key,
@@ -13,12 +14,15 @@ class AppIconWidget extends StatelessWidget {
     required this.packageName,
     this.size = 50.0,
     this.onSwipeUp,
+    this.onLongPress,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onLongPress: onLongPress,
       onVerticalDragEnd: (details) {
+
         if (details.primaryVelocity! < -300) {
           // Swipe Up
           onSwipeUp?.call();

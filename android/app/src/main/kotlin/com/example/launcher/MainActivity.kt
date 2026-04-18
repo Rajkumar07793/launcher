@@ -22,6 +22,14 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.util.Calendar
 
+import android.app.NotificationManager
+import android.content.ComponentName
+import android.content.pm.LauncherApps
+import android.content.pm.ShortcutInfo
+import android.os.UserHandle
+import android.os.UserManager
+import androidx.core.app.NotificationManagerCompat
+
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.launcher/apps"
     private var methodChannel: MethodChannel? = null
@@ -32,6 +40,19 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private val notificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val data = mapOf(
+                "packageName" to intent?.getStringExtra("packageName"),
+                "title" to intent?.getStringExtra("title"),
+                "text" to intent?.getStringExtra("text"),
+                "id" to intent?.getIntExtra("id", -1)
+            )
+            val method = if (intent?.action == "com.example.launcher.NOTIFICATION") "onNotificationPosted" else "onNotificationRemoved"
+            methodChannel?.invokeMethod(method, data)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val filter = IntentFilter().apply {
@@ -39,8 +60,24 @@ class MainActivity : FlutterActivity() {
             addAction(Intent.ACTION_PACKAGE_REMOVED)
             addDataScheme("package")
         }
-        registerReceiver(packageReceiver, filter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(packageReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(packageReceiver, filter)
+        }
+
+        val nFilter = IntentFilter().apply {
+            addAction("com.example.launcher.NOTIFICATION")
+            addAction("com.example.launcher.NOTIFICATION_REMOVED")
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(notificationReceiver, nFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(notificationReceiver, nFilter)
+        }
     }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
@@ -90,6 +127,31 @@ class MainActivity : FlutterActivity() {
                     } else {
                         result.error("INVALID_PACKAGE", "Package name is null", null)
                     }
+                }
+                "getShortcuts" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        result.success(getShortcuts(packageName))
+                    } else {
+                        result.error("INVALID_PACKAGE", "Package name is null", null)
+                    }
+                }
+                "launchShortcut" -> {
+                    val packageName = call.argument<String>("packageName")
+                    val shortcutId = call.argument<String>("shortcutId")
+                    if (packageName != null && shortcutId != null) {
+                        launchShortcut(packageName, shortcutId)
+                        result.success(true)
+                    } else {
+                        result.error("INVALID_ARGUMENTS", "Package name or shortcut ID is null", null)
+                    }
+                }
+                "checkNotificationPermission" -> {
+                    result.success(isNotificationServiceEnabled())
+                }
+                "openNotificationSettings" -> {
+                    openNotificationSettings()
+                    result.success(true)
                 }
                 else -> {
                     result.notImplemented()
@@ -169,6 +231,53 @@ class MainActivity : FlutterActivity() {
         return stats.mapValues { it.value.totalTimeInForeground }
     }
 
+    private fun getShortcuts(packageName: String): List<Map<String, String>> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return emptyList()
+        
+        val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        val query = LauncherApps.ShortcutQuery()
+        query.setPackage(packageName)
+        query.setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
+        
+        try {
+            val shortcuts = launcherApps.getShortcuts(query, Process.myUserHandle())
+            return shortcuts?.map {
+                mapOf(
+                    "id" to it.id,
+                    "label" to (it.shortLabel?.toString() ?: "Shortcut")
+                )
+            } ?: emptyList()
+        } catch (e: Exception) {
+            return emptyList()
+        }
+    }
+
+    private fun launchShortcut(packageName: String, shortcutId: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return
+        
+        val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        launcherApps.startShortcut(packageName, shortcutId, null, null, Process.myUserHandle())
+    }
+
+    private fun isNotificationServiceEnabled(): Boolean {
+        val pkgName = packageName
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        if (!flat.isNullOrEmpty()) {
+            val names = flat.split(":")
+            for (name in names) {
+                val cn = ComponentName.unflattenFromString(name)
+                if (cn != null && pkgName == cn.packageName) return true
+            }
+        }
+        return false
+    }
+
+    private fun openNotificationSettings() {
+        val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+
     private fun drawableToBytes(drawable: Drawable): ByteArray {
         val bitmap = if (drawable is BitmapDrawable) {
             drawable.bitmap
@@ -188,5 +297,6 @@ class MainActivity : FlutterActivity() {
         return stream.toByteArray()
     }
 }
+
 
 

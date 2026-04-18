@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:launcher/logic/shortcut_helper.dart';
 import 'package:provider/provider.dart';
 import '../services/launcher_service.dart';
 import '../logic/context_engine.dart';
@@ -11,7 +12,7 @@ class SmartDock extends StatelessWidget {
   Widget build(BuildContext context) {
     final launcherService = Provider.of<LauncherService>(context);
     final suggestedApps = ContextEngine.getSuggestedApps(launcherService.apps);
-    
+
     if (suggestedApps.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -52,7 +53,10 @@ class SmartDock extends StatelessWidget {
                       iconBytes: app.icon,
                       packageName: app.packageName,
                       size: 56,
-                      onSwipeUp: () => launcherService.openAppInfo(app.packageName),
+                      onSwipeUp: () =>
+                          launcherService.openAppInfo(app.packageName),
+                      onLongPress: () =>
+                          ShortcutHelper.showShortcutMenu(context, app),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -60,7 +64,10 @@ class SmartDock extends StatelessWidget {
                       child: Text(
                         app.name,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

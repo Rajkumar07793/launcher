@@ -1,11 +1,16 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:launcher/services/focus_mode_service.dart';
+import 'package:launcher/services/launcher_service.dart';
+import 'package:launcher/widgets/app_grid.dart';
+import 'package:launcher/widgets/dashboard_widget.dart';
+import 'package:launcher/widgets/smart_dock.dart';
 import 'package:provider/provider.dart';
-import '../services/launcher_service.dart';
-import '../services/focus_mode_service.dart';
-import '../widgets/smart_dock.dart';
-import '../widgets/app_grid.dart';
-import '../widgets/dashboard_widget.dart';
+
+import '../services/theme_service.dart';
+import '../services/notification_service.dart';
+import '../widgets/voice_action_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
+  bool _isVoiceVisible = false;
 
   @override
   void dispose() {
@@ -24,36 +30,52 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _triggerVoice() {
+    setState(() => _isVoiceVisible = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final focusService = Provider.of<FocusModeService>(context);
     final launcherService = Provider.of<LauncherService>(context);
+    final themeService = Provider.of<ThemeService>(context);
+
+    // Dynamic Theme Update
+    if (launcherService.apps.isNotEmpty && _searchQuery.isEmpty) {
+      // Small timeout to avoid build-loop
+      Future.microtask(() {
+        final suggestedApp =
+            launcherService.apps.first; // Or use logic from ContextEngine
+        themeService.updateThemeFromApp(suggestedApp);
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Background Gradient
-          Container(
-            decoration: const BoxDecoration(
+          // Background Gradient (Dynamic)
+          AnimatedContainer(
+            duration: const Duration(seconds: 1),
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF0F172A), // Deep Slate
-                  Color(0xFF000000), // Black
+                  themeService.accentColor.withOpacity(0.15),
+                  Colors.black,
                 ],
               ),
             ),
           ),
-          
+
           // Content
           SafeArea(
             child: SingleChildScrollView(
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  
+
                   // Header with Mode Toggle
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -61,9 +83,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildModeToggle(focusService),
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-                          onPressed: () => launcherService.openLauncherSettings(),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.mic_none_rounded,
+                                color: Colors.white70,
+                              ),
+                              onPressed: _triggerVoice,
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.settings_outlined,
+                                color: Colors.white70,
+                              ),
+                              onPressed: () =>
+                                  launcherService.openLauncherSettings(),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -71,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Dashboard Widget (V2)
+                  // Dashboard Widget (V3 includes Notification Center inside)
                   const DashboardWidget(),
 
                   const SizedBox(height: 10),
@@ -87,18 +124,28 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.05),
+                            ),
                           ),
                           child: TextField(
                             controller: _searchController,
                             style: const TextStyle(color: Colors.white),
-                            onChanged: (value) => setState(() => _searchQuery = value),
+                            onChanged: (value) =>
+                                setState(() => _searchQuery = value),
                             decoration: InputDecoration(
                               hintText: "Search apps...",
-                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                              prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.3),
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                color: Colors.white54,
+                              ),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 15,
+                              ),
                             ),
                           ),
                         ),
@@ -119,25 +166,39 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
                         children: [
-                          _buildSortChip("A-Z", !launcherService.hasUsagePermission || true, () => launcherService.sortAppsAlphabetical()),
+                          _buildSortChip(
+                            "A-Z",
+                            !launcherService.hasUsagePermission || true,
+                            () => launcherService.sortAppsAlphabetical(),
+                          ),
                           const SizedBox(width: 8),
                           if (launcherService.hasUsagePermission)
-                            _buildSortChip("Most Used", false, () => launcherService.sortAppsByUsage()),
+                            _buildSortChip(
+                              "Most Used",
+                              false,
+                              () => launcherService.sortAppsByUsage(),
+                            ),
                         ],
                       ),
                     ),
 
                   // All Apps Grid
                   AppGrid(searchQuery: _searchQuery),
-                  
+
                   const SizedBox(height: 100), // Space for banners
                 ],
               ),
             ),
           ),
-          
+
           // Floating Banners
           _buildBanners(launcherService),
+
+          // Voice Action Overlay
+          if (_isVoiceVisible)
+            VoiceActionOverlay(
+              onDismiss: () => setState(() => _isVoiceVisible = false),
+            ),
         ],
       ),
     );
@@ -152,15 +213,27 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          _buildModeItem(focusService, LauncherMode.normal, Icons.home_outlined),
+          _buildModeItem(
+            focusService,
+            LauncherMode.normal,
+            Icons.home_outlined,
+          ),
           _buildModeItem(focusService, LauncherMode.work, Icons.work_outline),
-          _buildModeItem(focusService, LauncherMode.focus, Icons.center_focus_strong_outlined),
+          _buildModeItem(
+            focusService,
+            LauncherMode.focus,
+            Icons.center_focus_strong_outlined,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildModeItem(FocusModeService service, LauncherMode mode, IconData icon) {
+  Widget _buildModeItem(
+    FocusModeService service,
+    LauncherMode mode,
+    IconData icon,
+  ) {
     final isSelected = service.currentMode == mode;
     return GestureDetector(
       onTap: () => service.setMode(mode),
@@ -168,7 +241,9 @@ class _HomeScreenState extends State<HomeScreen> {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blueAccent.withOpacity(0.2) : Colors.transparent,
+          color: isSelected
+              ? Colors.blueAccent.withOpacity(0.2)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
@@ -231,7 +306,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBanner(String id, String text, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildBanner(
+    String id,
+    String text,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -251,7 +332,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Colors.white54, size: 16),
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.white54,
+                  size: 16,
+                ),
               ],
             ),
           ),
@@ -260,4 +345,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

@@ -127,5 +127,39 @@ class LauncherService extends ChangeNotifier {
     _apps.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     notifyListeners();
   }
+
+  Future<List<Map<String, String>>> getShortcuts(String packageName) async {
+    try {
+      final List<dynamic> result = await platform.invokeMethod('getShortcuts', {'packageName': packageName});
+      return result.map((e) => Map<String, String>.from(e as Map)).toList();
+    } on PlatformException catch (e) {
+      debugPrint("Failed to get shortcuts: '${e.message}'.");
+      return [];
+    }
+  }
+
+  Future<void> launchShortcut(String packageName, String shortcutId) async {
+    try {
+      await platform.invokeMethod('launchShortcut', {
+        'packageName': packageName,
+        'shortcutId': shortcutId,
+      });
+    } on PlatformException catch (e) {
+      debugPrint("Failed to launch shortcut: '${e.message}'.");
+    }
+  }
+
+  Map<int, List<AppInfo>> getCategorizedApps() {
+    final Map<int, List<AppInfo>> categorized = {};
+    for (var app in _apps) {
+      final cat = app.category;
+      if (!categorized.containsKey(cat)) {
+        categorized[cat] = [];
+      }
+      categorized[cat]!.add(app);
+    }
+    return categorized;
+  }
 }
+
 
