@@ -48,7 +48,12 @@ class SmartDock extends StatelessWidget {
                 onTap: () => launcherService.launchApp(app.packageName),
                 child: Column(
                   children: [
-                    AppIconWidget(iconBytes: app.icon, size: 56),
+                    AppIconWidget(
+                      iconBytes: app.icon,
+                      packageName: app.packageName,
+                      size: 56,
+                      onSwipeUp: () => launcherService.openAppInfo(app.packageName),
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       width: 70,

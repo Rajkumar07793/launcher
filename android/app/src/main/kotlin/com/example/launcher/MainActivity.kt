@@ -1,20 +1,26 @@
 package com.example.launcher
 
+import android.app.AppOpsManager
+import android.app.usage.UsageStatsManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
+import android.os.Process
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
+import java.util.Calendar
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.launcher/apps"
@@ -66,6 +72,25 @@ class MainActivity : FlutterActivity() {
                     openLauncherSettings()
                     result.success(true)
                 }
+                "checkUsagePermission" -> {
+                    result.success(hasUsagePermission())
+                }
+                "openUsageSettings" -> {
+                    openUsageSettings()
+                    result.success(true)
+                }
+                "getUsageStats" -> {
+                    result.success(getUsageStats())
+                }
+                "openAppInfo" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        openAppInfo(packageName)
+                        result.success(true)
+                    } else {
+                        result.error("INVALID_PACKAGE", "Package name is null", null)
+                    }
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -77,10 +102,16 @@ class MainActivity : FlutterActivity() {
         val pm = packageManager
         val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
         return apps.filter { pm.getLaunchIntentForPackage(it.packageName) != null }.map {
+            val category = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                it.category
+            } else {
+                -1
+            }
             mapOf(
                 "name" to it.loadLabel(pm).toString(),
                 "packageName" to it.packageName,
-                "icon" to drawableToBytes(it.loadIcon(pm))
+                "icon" to drawableToBytes(it.loadIcon(pm)),
+                "category" to category
             )
         }
     }
@@ -91,6 +122,13 @@ class MainActivity : FlutterActivity() {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
         }
+    }
+
+    private fun openAppInfo(packageName: String) {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        intent.data = android.net.Uri.parse("package:$packageName")
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
     }
 
     private fun isDefaultLauncher(): Boolean {
@@ -104,6 +142,31 @@ class MainActivity : FlutterActivity() {
         val intent = Intent(Settings.ACTION_HOME_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
+    }
+
+    private fun hasUsagePermission(): Boolean {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), packageName)
+        } else {
+            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), packageName)
+        }
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun openUsageSettings() {
+        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+
+    private fun getUsageStats(): Map<String, Long> {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.DAY_OF_YEAR, -1)
+        val stats = usageStatsManager.queryAndAggregateUsageStats(calendar.timeInMillis, System.currentTimeMillis())
+        
+        return stats.mapValues { it.value.totalTimeInForeground }
     }
 
     private fun drawableToBytes(drawable: Drawable): ByteArray {
@@ -125,4 +188,5 @@ class MainActivity : FlutterActivity() {
         return stream.toByteArray()
     }
 }
+
 

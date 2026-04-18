@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/launcher_service.dart';
-import 'app_icon_widget.dart';
+import '../services/focus_mode_service.dart';
+import '../widgets/app_icon_widget.dart';
 
 class AppGrid extends StatelessWidget {
   final String searchQuery;
@@ -11,11 +12,15 @@ class AppGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final launcherService = Provider.of<LauncherService>(context);
+    final focusService = Provider.of<FocusModeService>(context);
     
-    final filteredApps = searchQuery.isEmpty 
-        ? launcherService.apps 
-        : launcherService.apps.where((app) => 
-            app.name.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+    // Filter by Search Query AND Focus Mode
+    final filteredApps = launcherService.apps.where((app) {
+      final matchesSearch = searchQuery.isEmpty || 
+          app.name.toLowerCase().contains(searchQuery.toLowerCase());
+      final allowedByFocus = focusService.isAppAllowed(app.packageName);
+      return matchesSearch && allowedByFocus;
+    }).toList();
 
     if (launcherService.isLoading) {
       return const Center(child: CircularProgressIndicator(color: Colors.white));
@@ -47,7 +52,12 @@ class AppGrid extends StatelessWidget {
           onTap: () => launcherService.launchApp(app.packageName),
           child: Column(
             children: [
-              AppIconWidget(iconBytes: app.icon, size: 56),
+              AppIconWidget(
+                iconBytes: app.icon,
+                packageName: app.packageName,
+                size: 56,
+                onSwipeUp: () => launcherService.openAppInfo(app.packageName),
+              ),
               const SizedBox(height: 8),
               Text(
                 app.name,
