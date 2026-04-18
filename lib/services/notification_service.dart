@@ -54,12 +54,26 @@ class NotificationService extends ChangeNotifier {
   void _onNotificationPosted(Map data) {
     final notification = LauncherNotification.fromMap(data);
     
+    // Smart Filter: Detect Promotional Keywords
+    final text = notification.text.toLowerCase();
+    final title = notification.title.toLowerCase();
+    final isPromo = _promoKeywords.any((kw) => text.contains(kw) || title.contains(kw));
+
+    if (isPromo) {
+      debugPrint("Notification Triage: Filtered promo from ${notification.packageName}");
+      return; 
+    }
+
     // Remove old notification with same ID and package if exists
     _notifications.removeWhere((n) => n.id == notification.id && n.packageName == notification.packageName);
-    
     _notifications.insert(0, notification);
     notifyListeners();
   }
+
+  static const List<String> _promoKeywords = [
+    'off', 'discount', 'sale', 'save', 'promo', 'cashback', 'exclusive', 'deal', 'offer', 'win', 'lottery'
+  ];
+
 
   void _onNotificationRemoved(Map data) {
     final id = data['id'] as int;

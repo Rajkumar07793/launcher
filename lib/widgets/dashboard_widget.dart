@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/financial_hud_widget.dart';
 import '../widgets/life_insights_widget.dart';
 import '../widgets/notification_center_widget.dart';
 
@@ -25,6 +26,9 @@ class DashboardWidget extends StatelessWidget {
               ],
             ),
           ),
+
+          const FinancialHudWidget(),
+          const SizedBox(height: 12),
 
           Container(
             padding: const EdgeInsets.all(2), // For border glow
