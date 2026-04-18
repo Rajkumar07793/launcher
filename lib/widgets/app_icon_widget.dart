@@ -1,5 +1,48 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+
+class HexagonPainter extends CustomPainter {
+  final Color color;
+  HexagonPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    final glowPaint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..strokeWidth = 4.0
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+
+    final path = Path();
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    final radius = size.width / 2;
+
+    for (int i = 0; i < 6; i++) {
+      final angle = (pi / 3) * i - (pi / 2);
+      final x = centerX + radius * cos(angle);
+      final y = centerY + radius * sin(angle);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+
+    canvas.drawPath(path, glowPaint);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 class AppIconWidget extends StatelessWidget {
   final Uint8List iconBytes;
@@ -22,39 +65,81 @@ class AppIconWidget extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       onVerticalDragEnd: (details) {
-
         if (details.primaryVelocity! < -300) {
-          // Swipe Up
           onSwipeUp?.call();
         }
       },
-      child: Hero(
-        tag: 'app_icon_$packageName',
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Hexagon Border
+          CustomPaint(
+            size: Size(size * 1.2, size * 1.2),
+            painter: HexagonPainter(color: Colors.cyanAccent.withOpacity(0.5)),
           ),
-          padding: EdgeInsets.all(size * 0.12),
-          child: Center(
-            child: Image.memory(
-              iconBytes,
-              width: size * 0.75,
-              height: size * 0.75,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Icon(
-                Icons.android,
-                size: size * 0.6,
-                color: Colors.greenAccent,
+          
+          // Icon with Hexagon Clip
+          ClipPath(
+            clipper: HexagonClipper(),
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.3),
+              ),
+              child: Image.memory(
+                iconBytes,
+                width: size * 0.7,
+                height: size * 0.7,
+                fit: BoxFit.contain,
               ),
             ),
           ),
-        ),
+          
+          // Technical scanning overlay (subtle)
+          Positioned(
+            top: 0,
+            child: Container(
+              width: size,
+              height: 1,
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.cyanAccent.withOpacity(0.3),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+class HexagonClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    final radius = size.width / 2;
+
+    for (int i = 0; i < 6; i++) {
+      final angle = (pi / 3) * i - (pi / 2);
+      final x = centerX + radius * cos(angle);
+      final y = centerY + radius * sin(angle);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}

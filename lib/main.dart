@@ -32,15 +32,17 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        primaryColor: themeService.accentColor,
+        primaryColor: Colors.cyanAccent,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: themeService.accentColor,
+          seedColor: Colors.cyanAccent,
           brightness: Brightness.dark,
+          surface: const Color(0xFF020617),
         ),
         useMaterial3: true,
         fontFamily: 'Inter',
       ),
       home: const HomeScreen(),
     );
+
   }
 }

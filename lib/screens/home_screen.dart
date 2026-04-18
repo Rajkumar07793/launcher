@@ -1,16 +1,15 @@
+import 'dart:io';
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:launcher/services/focus_mode_service.dart';
-import 'package:launcher/services/launcher_service.dart';
-import 'package:launcher/widgets/app_grid.dart';
-import 'package:launcher/widgets/dashboard_widget.dart';
-import 'package:launcher/widgets/smart_dock.dart';
 import 'package:provider/provider.dart';
-
+import '../services/launcher_service.dart';
+import '../services/focus_mode_service.dart';
 import '../services/theme_service.dart';
-import '../services/notification_service.dart';
+import '../widgets/smart_dock.dart';
+import '../widgets/app_grid.dart';
+import '../widgets/dashboard_widget.dart';
 import '../widgets/voice_action_overlay.dart';
+import '../widgets/circuit_background.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -38,240 +37,184 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final focusService = Provider.of<FocusModeService>(context);
     final launcherService = Provider.of<LauncherService>(context);
-    final themeService = Provider.of<ThemeService>(context);
 
-    // Dynamic Theme Update
-    if (launcherService.apps.isNotEmpty && _searchQuery.isEmpty) {
-      // Small timeout to avoid build-loop
-      Future.microtask(() {
-        final suggestedApp =
-            launcherService.apps.first; // Or use logic from ContextEngine
-        themeService.updateThemeFromApp(suggestedApp);
-      });
-    }
+    const String bgPath = "/Users/rajkumar/.gemini/antigravity/brain/f4baf74e-3f5e-4055-944a-65b85f0dbb80/ai_robotics_preview_1776538562397.png";
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Background Gradient (Dynamic)
-          AnimatedContainer(
-            duration: const Duration(seconds: 1),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  themeService.accentColor.withOpacity(0.15),
-                  Colors.black,
-                ],
+      backgroundColor: const Color(0xFF020617),
+      body: CircuitBackground(
+        child: Stack(
+          children: [
+            // AI Robotics Background Image (Atmospheric Overlay)
+            if (File(bgPath).existsSync())
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.3,
+                  child: Image.file(
+                    File(bgPath),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            
+            // Neon Gradient Underlay
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.topRight,
+                    radius: 1.5,
+                    colors: [
+                      Colors.cyan.withOpacity(0.05),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
 
-          // Content
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-
-                  // Header with Mode Toggle
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildModeToggle(focusService),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.mic_none_rounded,
-                                color: Colors.white70,
-                              ),
-                              onPressed: _triggerVoice,
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.settings_outlined,
-                                color: Colors.white70,
-                              ),
-                              onPressed: () =>
-                                  launcherService.openLauncherSettings(),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Dashboard Widget (V3 includes Notification Center inside)
-                  const DashboardWidget(),
-
-                  const SizedBox(height: 10),
-
-                  // Glassmorphic Search Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.05),
-                            ),
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            style: const TextStyle(color: Colors.white),
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value),
-                            decoration: InputDecoration(
-                              hintText: "Search apps...",
-                              hintStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.3),
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: Colors.white54,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 15,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Smart Suggestions Section
-                  if (_searchQuery.isEmpty) const SmartDock(),
-
-                  const SizedBox(height: 10),
-
-                  // Sorting Toggle
-                  if (_searchQuery.isEmpty)
+            // Main Content
+            SafeArea(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    
+                    // Technical Header
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildSortChip(
-                            "A-Z",
-                            !launcherService.hasUsagePermission || true,
-                            () => launcherService.sortAppsAlphabetical(),
+                          _buildModeToggle(focusService),
+                          _buildHudClockTag(),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.mic_none_rounded, color: Colors.cyanAccent, size: 28),
+                                onPressed: _triggerVoice,
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.settings_input_component_sharp, color: Colors.white38, size: 20),
+                                onPressed: () => launcherService.openLauncherSettings(),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          if (launcherService.hasUsagePermission)
-                            _buildSortChip(
-                              "Most Used",
-                              false,
-                              () => launcherService.sortAppsByUsage(),
-                            ),
                         ],
                       ),
                     ),
 
-                  // All Apps Grid
-                  AppGrid(searchQuery: _searchQuery),
+                    const SizedBox(height: 10),
+                    const DashboardWidget(),
+                    const SizedBox(height: 10),
 
-                  const SizedBox(height: 100), // Space for banners
-                ],
+                    // Technical Search Bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _buildHudSearch(),
+                    ),
+
+                    const SizedBox(height: 20),
+                    const SmartDock(),
+                    const SizedBox(height: 10),
+                    AppGrid(searchQuery: _searchQuery),
+                    
+                    const SizedBox(height: 120), // Banner space
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Floating Banners
-          _buildBanners(launcherService),
+            // Voice Overlay
+            if (_isVoiceVisible)
+              VoiceActionOverlay(onDismiss: () => setState(() => _isVoiceVisible = false)),
+            
+            // Bottom Information Banners
+            _buildBanners(launcherService),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // Voice Action Overlay
-          if (_isVoiceVisible)
-            VoiceActionOverlay(
-              onDismiss: () => setState(() => _isVoiceVisible = false),
+  Widget _buildHudClockTag() {
+    return Column(
+      children: [
+        const Text(
+          "CORE_SYNC: ACTIVE",
+          style: TextStyle(color: Colors.cyanAccent, fontSize: 7, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: 40,
+          height: 1,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.transparent, Colors.cyanAccent.withOpacity(0.5), Colors.transparent],
             ),
-        ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHudSearch() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        border: Border(
+          left: BorderSide(color: Colors.cyanAccent.withOpacity(0.4), width: 2),
+          bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
+        ),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: Colors.white, fontSize: 13, letterSpacing: 1),
+        decoration: InputDecoration(
+          hintText: ">> EXECUTE_SEARCH_COMMAND...",
+          hintStyle: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 2),
+          prefixIcon: const Icon(Icons.terminal, color: Colors.cyanAccent, size: 16),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        onChanged: (v) => setState(() => _searchQuery = v),
       ),
     );
   }
 
   Widget _buildModeToggle(FocusModeService focusService) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
       ),
       child: Row(
         children: [
-          _buildModeItem(
-            focusService,
-            LauncherMode.normal,
-            Icons.home_outlined,
-          ),
-          _buildModeItem(focusService, LauncherMode.work, Icons.work_outline),
-          _buildModeItem(
-            focusService,
-            LauncherMode.focus,
-            Icons.center_focus_strong_outlined,
-          ),
+          _buildModeItem(focusService, LauncherMode.normal, Icons.dashboard_customize_outlined),
+          _buildModeItem(focusService, LauncherMode.work, Icons.terminal_outlined),
+          _buildModeItem(focusService, LauncherMode.focus, Icons.remove_red_eye_outlined),
         ],
       ),
     );
   }
 
-  Widget _buildModeItem(
-    FocusModeService service,
-    LauncherMode mode,
-    IconData icon,
-  ) {
+  Widget _buildModeItem(FocusModeService service, LauncherMode mode, IconData icon) {
     final isSelected = service.currentMode == mode;
     return GestureDetector(
       onTap: () => service.setMode(mode),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.blueAccent.withOpacity(0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          color: isSelected ? Colors.cyanAccent.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(
           icon,
-          size: 18,
-          color: isSelected ? Colors.blueAccent : Colors.white38,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSortChip(String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(isSelected ? 0.1 : 0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white38,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
+          size: 16,
+          color: isSelected ? Colors.cyanAccent : Colors.white38,
         ),
       ),
     );
@@ -285,61 +228,33 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           if (!service.hasUsagePermission)
-            _buildBanner(
-              "usage_access",
-              "Enable usage access to see app stats",
-              Icons.bar_chart,
-              Colors.amberAccent,
-              () => service.requestUsagePermission(),
-            ),
-          const SizedBox(height: 8),
+            _buildBanner("Usage Required", Icons.analytics_outlined, Colors.cyanAccent, () => service.requestUsagePermission()),
           if (!service.isDefaultLauncher)
-            _buildBanner(
-              "default_home",
-              "Set as default home to unlock full experience",
-              Icons.home,
-              Colors.blueAccent,
-              () => service.openLauncherSettings(),
-            ),
+            _buildBanner("Set Default", Icons.home_repair_service_outlined, Colors.blueAccent, () => service.openLauncherSettings()),
         ],
       ),
     );
   }
 
-  Widget _buildBanner(
-    String id,
-    String text,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
+  Widget _buildBanner(String text, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            color: color.withOpacity(0.15),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    text,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: Colors.white54,
-                  size: 16,
-                ),
-              ],
-            ),
-          ),
+      child: Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.05),
+          border: Border.all(color: color.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 12),
+            Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 12),
+          ],
         ),
       ),
     );
