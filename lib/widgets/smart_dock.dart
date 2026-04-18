@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:launcher/logic/shortcut_helper.dart';
 import 'package:provider/provider.dart';
 import '../services/launcher_service.dart';
-import '../logic/context_engine.dart';
+import '../services/behavior_engine.dart';
+import '../logic/shortcut_helper.dart';
 import 'app_icon_widget.dart';
 
 class SmartDock extends StatelessWidget {
@@ -11,7 +11,10 @@ class SmartDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final launcherService = Provider.of<LauncherService>(context);
-    final suggestedApps = ContextEngine.getSuggestedApps(launcherService.apps);
+    final behavior = Provider.of<BehaviorEngine>(context);
+    
+    // Use the Predictive Engine instead of the old static ContextEngine
+    final suggestedApps = behavior.getPredictedApps(launcherService.apps);
 
     if (suggestedApps.isEmpty) return const SizedBox.shrink();
 
@@ -19,25 +22,30 @@ class SmartDock extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: const Color(0xFF0F172A).withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, color: Colors.amber[300], size: 18),
+              const Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 16),
               const SizedBox(width: 8),
-              Text(
-                "SMART SUGGESTIONS",
+              const Text(
+                "PREDICTIVE_SUGGESTIONS",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 12,
+                  color: Colors.cyanAccent,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+                  letterSpacing: 2,
                 ),
+              ),
+              const Spacer(),
+              Text(
+                "[ ${behavior.currentContext.name.toUpperCase()} ]",
+                style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 8, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -46,28 +54,26 @@ class SmartDock extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: suggestedApps.map((app) {
               return GestureDetector(
-                onTap: () => launcherService.launchApp(app.packageName),
+                onTap: () {
+                  behavior.logEngagement(app.packageName);
+                  launcherService.launchApp(app.packageName);
+                },
                 child: Column(
                   children: [
                     AppIconWidget(
                       iconBytes: app.icon,
                       packageName: app.packageName,
-                      size: 56,
-                      onSwipeUp: () =>
-                          launcherService.openAppInfo(app.packageName),
-                      onLongPress: () =>
-                          ShortcutHelper.showShortcutMenu(context, app),
+                      size: 50,
+                      onSwipeUp: () => launcherService.openAppInfo(app.packageName),
+                      onLongPress: () => ShortcutHelper.showShortcutMenu(context, app),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
-                      width: 70,
+                      width: 60,
                       child: Text(
-                        app.name,
+                        app.name.toUpperCase(),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                        ),
+                        style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

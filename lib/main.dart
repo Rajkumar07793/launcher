@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:launcher/services/behavior_engine.dart';
 import 'package:provider/provider.dart';
-import 'services/launcher_service.dart';
+
+import 'screens/home_screen.dart';
 import 'services/focus_mode_service.dart';
+import 'services/launcher_service.dart';
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
-import 'screens/home_screen.dart';
 
 void main() {
   runApp(
@@ -14,7 +16,9 @@ void main() {
         ChangeNotifierProvider(create: (_) => FocusModeService()),
         ChangeNotifierProvider(create: (_) => NotificationService()),
         ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => BehaviorEngine()),
       ],
+
       child: const MyApp(),
     ),
   );
@@ -43,6 +47,5 @@ class MyApp extends StatelessWidget {
       ),
       home: const HomeScreen(),
     );
-
   }
 }

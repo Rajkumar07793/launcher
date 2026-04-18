@@ -5,6 +5,8 @@ import '../services/focus_mode_service.dart';
 import '../widgets/app_icon_widget.dart';
 import '../models/app_info.dart';
 import '../logic/shortcut_helper.dart';
+import '../services/behavior_engine.dart';
+
 
 class AppGrid extends StatefulWidget {
   final String searchQuery;
@@ -141,8 +143,12 @@ class _AppGridState extends State<AppGrid> {
 
   Widget _buildAppItem(AppInfo app, LauncherService launcherService) {
     return GestureDetector(
-      onTap: () => launcherService.launchApp(app.packageName),
+      onTap: () {
+        Provider.of<BehaviorEngine>(context, listen: false).logEngagement(app.packageName);
+        launcherService.launchApp(app.packageName);
+      },
       child: Column(
+
         children: [
           AppIconWidget(
             iconBytes: app.icon,

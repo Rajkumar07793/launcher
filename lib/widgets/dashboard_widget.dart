@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/life_insights_widget.dart';
 import '../widgets/notification_center_widget.dart';
 
 class DashboardWidget extends StatelessWidget {
@@ -99,6 +100,8 @@ class DashboardWidget extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          const LifeInsightsWidget(),
           const SizedBox(height: 12),
           const NotificationCenterWidget(),
         ],
