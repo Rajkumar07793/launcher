@@ -268,12 +268,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBanners(LauncherService service, FinanceEngine finance) {
+    bool anyMissing =
+        !finance.hasSmsPermission ||
+        !service.hasUsagePermission ||
+        !service.isDefaultLauncher;
+
     return Positioned(
       bottom: 20,
       left: 20,
       right: 20,
       child: Column(
         children: [
+          if (anyMissing)
+            _buildBanner(
+              "Permission Troubleshooting",
+              Icons.help_outline,
+              Colors.white38,
+              () => _showRestrictedSettingsGuide(context),
+            ),
+          const SizedBox(height: 8),
           if (!finance.hasSmsPermission)
             _buildBanner(
               "SMS Access Required",
@@ -295,6 +308,74 @@ class _HomeScreenState extends State<HomeScreen> {
               Colors.blueAccent,
               () => service.openLauncherSettings(),
             ),
+        ],
+      ),
+    );
+  }
+
+  void _showRestrictedSettingsGuide(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Colors.cyanAccent, width: 1),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.security, color: Colors.cyanAccent),
+            SizedBox(width: 10),
+            Text(
+              "Restricted Settings",
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Android 13+ Security Feature",
+              style: TextStyle(
+                color: Colors.cyanAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              "Android blocks sensitive permissions for sideloaded apps to protect against malware. If a setting is grayed out, follow these steps:",
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            SizedBox(height: 16),
+            Text(
+              "1. Open System Settings\n2. Navigate to Apps\n3. Select 'AI Launcher'\n4. Tap the three dots (⋮) or 'More' at the top right\n5. Select 'Allow restricted settings'",
+              style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+            ),
+            SizedBox(height: 16),
+            Text(
+              "After enabling this, you can return here and grant the required permissions.",
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "UNDERSTOOD",
+              style: TextStyle(
+                color: Colors.cyanAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ],
       ),
     );

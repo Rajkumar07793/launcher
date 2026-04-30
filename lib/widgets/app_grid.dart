@@ -7,11 +7,12 @@ import '../services/behavior_engine.dart';
 import '../services/focus_mode_service.dart';
 import '../services/launcher_service.dart';
 import '../widgets/app_icon_widget.dart';
+import '../widgets/holographic_folder.dart';
 
 class AppGrid extends StatefulWidget {
   final String searchQuery;
 
-  const AppGrid({Key? key, required this.searchQuery}) : super(key: key);
+  const AppGrid({super.key, required this.searchQuery});
 
   @override
   State<AppGrid> createState() => _AppGridState();
@@ -19,6 +20,7 @@ class AppGrid extends StatefulWidget {
 
 class _AppGridState extends State<AppGrid> {
   bool _isFolderView = false;
+  int? _expandedCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,7 @@ class _AppGridState extends State<AppGrid> {
       children: [
         if (widget.searchQuery.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+            padding: const EdgeInsets.all(12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -56,14 +58,16 @@ class _AppGridState extends State<AppGrid> {
                   scale: 0.6,
                   child: Switch(
                     value: _isFolderView,
-                    onChanged: (v) => setState(() => _isFolderView = v),
+                    onChanged: (v) => setState(() {
+                      _isFolderView = v;
+                      _expandedCategory = null;
+                    }),
                     activeColor: Colors.blueAccent,
                   ),
                 ),
               ],
             ),
           ),
-
         _isFolderView && widget.searchQuery.isEmpty
             ? _buildFolderView(filteredApps, launcherService)
             : _buildGridView(filteredApps, launcherService),
@@ -91,16 +95,17 @@ class _AppGridState extends State<AppGrid> {
   }
 
   Widget _buildFolderView(List<AppInfo> apps, LauncherService launcherService) {
-    final Map<int, String> categoryNames = {
-      0: "Games",
-      1: "Audio",
-      2: "Video",
-      3: "Image",
-      4: "Social",
-      5: "News",
-      6: "Maps",
-      7: "Productivity",
-      -1: "Other",
+    final Map<int, Map<String, dynamic>> categoryMetadata = {
+      0: {"name": "Games", "icon": Icons.sports_esports_outlined},
+      1: {"name": "Audio", "icon": Icons.audiotrack_outlined},
+      2: {"name": "Video", "icon": Icons.movie_filter_outlined},
+      3: {"name": "Image", "icon": Icons.image_search_outlined},
+      4: {"name": "Social", "icon": Icons.alternate_email_outlined},
+      5: {"name": "News", "icon": Icons.feed_outlined},
+      6: {"name": "Maps", "icon": Icons.explore_outlined},
+      7: {"name": "Productivity", "icon": Icons.inventory_2_outlined},
+      8: {"name": "Accessibility", "icon": Icons.accessibility_new_outlined},
+      -1: {"name": "Other", "icon": Icons.widgets_outlined},
     };
 
     final categorized = <int, List<AppInfo>>{};
@@ -110,40 +115,148 @@ class _AppGridState extends State<AppGrid> {
 
     if (categorized.isEmpty) return _buildEmptyState();
 
-    return Column(
-      children: categorized.entries.map((entry) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      switchInCurve: Curves.easeOutBack,
+      switchOutCurve: Curves.easeInCirc,
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        final scale = Tween<double>(begin: 0.8, end: 1.0).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(scale: scale, child: child),
+        );
+      },
+      child: _expandedCategory == null
+          ? _buildCategoryGrid(categorized, categoryMetadata, launcherService)
+          : _buildExpandedFolder(
+              _expandedCategory!,
+              categorized[_expandedCategory!] ?? [],
+              categoryMetadata[_expandedCategory!] ?? categoryMetadata[-1]!,
+              launcherService,
+            ),
+    );
+  }
+
+  Widget _buildCategoryGrid(
+    Map<int, List<AppInfo>> categorized,
+    Map<int, Map<String, dynamic>> meta,
+    LauncherService launcherService,
+  ) {
+    return GridView.builder(
+      key: const ValueKey("category_grid"),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.85,
+        mainAxisSpacing: 20,
+        crossAxisSpacing: 20,
+      ),
+      itemCount: categorized.length,
+      itemBuilder: (context, index) {
+        final entry = categorized.entries.elementAt(index);
+        final categoryMeta = meta[entry.key] ?? meta[-1]!;
+
+        return HolographicFolder(
+          name: categoryMeta["name"],
+          icon: categoryMeta["icon"],
+          count: entry.value.length,
+          apps: entry.value,
+          onExpand: () => setState(() => _expandedCategory = entry.key),
+          onAppLaunch: (packageName) {
+            Provider.of<BehaviorEngine>(
+              context,
+              listen: false,
+            ).logEngagement(packageName);
+            launcherService.launchApp(packageName);
+          },
+        );
+      },
+    );
+  }
+
+  double _pinchScale = 1.0;
+
+  Widget _buildExpandedFolder(
+    int categoryId,
+    List<AppInfo> apps,
+    Map<String, dynamic> meta,
+    LauncherService launcherService,
+  ) {
+    return GestureDetector(
+      onScaleUpdate: (details) {
+        setState(() {
+          _pinchScale = details.scale.clamp(0.4, 1.0);
+        });
+        // Pinch in to collapse
+        if (_pinchScale < 0.6) {
+          setState(() {
+            _expandedCategory = null;
+            _pinchScale = 1.0;
+          });
+        }
+      },
+      onScaleEnd: (details) {
+        setState(() => _pinchScale = 1.0);
+      },
+      child: AnimatedScale(
+        scale: _pinchScale,
+        duration: const Duration(milliseconds: 50),
+        child: Column(
+          key: ValueKey("expanded_folder_$categoryId"),
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              child: Text(
-                categoryNames[entry.key]?.toUpperCase() ?? "APPS",
-                style: const TextStyle(
-                  color: Colors.white30,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.cyanAccent,
+                      size: 14,
+                    ),
+                    onPressed: () => setState(() => _expandedCategory = null),
+                  ),
+                  Text(
+                    meta["name"].toString().toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.cyanAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Text(
+                    ">> DIRECTORY_ACCESS: GRANTED",
+                    style: TextStyle(
+                      color: Colors.white24,
+                      fontSize: 7,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
             GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
-                childAspectRatio: 0.75,
-                mainAxisSpacing: 10,
+                childAspectRatio: 0.72,
+                mainAxisSpacing: 20,
                 crossAxisSpacing: 10,
               ),
-              itemCount: entry.value.length,
+              itemCount: apps.length,
               itemBuilder: (context, index) =>
-                  _buildAppItem(entry.value[index], launcherService),
+                  _buildAppItem(apps[index], launcherService),
             ),
+            const SizedBox(height: 100),
           ],
-        );
-      }).toList(),
+        ),
+      ),
     );
   }
 
