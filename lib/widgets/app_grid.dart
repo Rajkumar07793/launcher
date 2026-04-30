@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/launcher_service.dart';
-import '../services/focus_mode_service.dart';
-import '../widgets/app_icon_widget.dart';
-import '../models/app_info.dart';
-import '../logic/shortcut_helper.dart';
-import '../services/behavior_engine.dart';
 
+import '../logic/shortcut_helper.dart';
+import '../models/app_info.dart';
+import '../services/behavior_engine.dart';
+import '../services/focus_mode_service.dart';
+import '../services/launcher_service.dart';
+import '../widgets/app_icon_widget.dart';
 
 class AppGrid extends StatefulWidget {
   final String searchQuery;
@@ -24,9 +24,10 @@ class _AppGridState extends State<AppGrid> {
   Widget build(BuildContext context) {
     final launcherService = Provider.of<LauncherService>(context);
     final focusService = Provider.of<FocusModeService>(context);
-    
+
     final filteredApps = launcherService.apps.where((app) {
-      final matchesSearch = widget.searchQuery.isEmpty || 
+      final matchesSearch =
+          widget.searchQuery.isEmpty ||
           app.name.toLowerCase().contains(widget.searchQuery.toLowerCase());
       final allowedByFocus = focusService.isAppAllowed(app.packageName);
       return matchesSearch && allowedByFocus;
@@ -47,7 +48,10 @@ class _AppGridState extends State<AppGrid> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Text("Folder View", style: TextStyle(color: Colors.white38, fontSize: 10)),
+                const Text(
+                  "Folder View",
+                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                ),
                 Transform.scale(
                   scale: 0.6,
                   child: Switch(
@@ -59,7 +63,7 @@ class _AppGridState extends State<AppGrid> {
               ],
             ),
           ),
-        
+
         _isFolderView && widget.searchQuery.isEmpty
             ? _buildFolderView(filteredApps, launcherService)
             : _buildGridView(filteredApps, launcherService),
@@ -69,7 +73,7 @@ class _AppGridState extends State<AppGrid> {
 
   Widget _buildGridView(List<AppInfo> apps, LauncherService launcherService) {
     if (apps.isEmpty) return _buildEmptyState();
-    
+
     return GridView.builder(
       padding: const EdgeInsets.all(20),
       physics: const NeverScrollableScrollPhysics(),
@@ -78,10 +82,11 @@ class _AppGridState extends State<AppGrid> {
         crossAxisCount: 4,
         mainAxisSpacing: 24,
         crossAxisSpacing: 16,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.7,
       ),
       itemCount: apps.length,
-      itemBuilder: (context, index) => _buildAppItem(apps[index], launcherService),
+      itemBuilder: (context, index) =>
+          _buildAppItem(apps[index], launcherService),
     );
   }
 
@@ -115,10 +120,10 @@ class _AppGridState extends State<AppGrid> {
               child: Text(
                 categoryNames[entry.key]?.toUpperCase() ?? "APPS",
                 style: const TextStyle(
-                  color: Colors.white30, 
-                  fontSize: 10, 
-                  fontWeight: FontWeight.bold, 
-                  letterSpacing: 1.2
+                  color: Colors.white30,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
             ),
@@ -128,12 +133,13 @@ class _AppGridState extends State<AppGrid> {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
-                childAspectRatio: 0.8,
+                childAspectRatio: 0.75,
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
               ),
               itemCount: entry.value.length,
-              itemBuilder: (context, index) => _buildAppItem(entry.value[index], launcherService),
+              itemBuilder: (context, index) =>
+                  _buildAppItem(entry.value[index], launcherService),
             ),
           ],
         );
@@ -144,17 +150,18 @@ class _AppGridState extends State<AppGrid> {
   Widget _buildAppItem(AppInfo app, LauncherService launcherService) {
     return GestureDetector(
       onTap: () {
-        Provider.of<BehaviorEngine>(context, listen: false).logEngagement(app.packageName);
+        Provider.of<BehaviorEngine>(
+          context,
+          listen: false,
+        ).logEngagement(app.packageName);
         launcherService.launchApp(app.packageName);
       },
       child: Column(
-
         children: [
           AppIconWidget(
             iconBytes: app.icon,
             packageName: app.packageName,
             size: 56,
-            onSwipeUp: () => launcherService.openAppInfo(app.packageName),
             onLongPress: () => ShortcutHelper.showShortcutMenu(context, app),
           ),
           const SizedBox(height: 8),

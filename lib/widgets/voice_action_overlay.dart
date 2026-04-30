@@ -1,14 +1,16 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import '../services/launcher_service.dart';
+
 import '../services/focus_mode_service.dart';
+import '../services/launcher_service.dart';
 
 class VoiceActionOverlay extends StatefulWidget {
   final VoidCallback onDismiss;
 
-  const VoiceActionOverlay({Key? key, required this.onDismiss}) : super(key: key);
+  const VoiceActionOverlay({super.key, required this.onDismiss});
 
   @override
   State<VoiceActionOverlay> createState() => _VoiceActionOverlayState();
@@ -16,9 +18,9 @@ class VoiceActionOverlay extends StatefulWidget {
 
 class _VoiceActionOverlayState extends State<VoiceActionOverlay> {
   late stt.SpeechToText _speech;
-  bool _isListening = false;
+  // bool _isListening = false;
   String _text = "Listening...";
-  double _confidence = 1.0;
+  // double _confidence = 1.0;
 
   @override
   void initState() {
@@ -33,14 +35,14 @@ class _VoiceActionOverlayState extends State<VoiceActionOverlay> {
       onError: (val) => print('onError: $val'),
     );
     if (available) {
-      if (mounted) setState(() => _isListening = true);
+      // if (mounted) setState(() => _isListening = true);
       _speech.listen(
         onResult: (val) {
           if (mounted) {
             setState(() {
               _text = val.recognizedWords;
               if (val.hasConfidenceRating && val.confidence > 0) {
-                _confidence = val.confidence;
+                // _confidence = val.confidence;
               }
             });
             if (val.finalResult) {
@@ -56,11 +58,17 @@ class _VoiceActionOverlayState extends State<VoiceActionOverlay> {
   }
 
   void _handleCommand(String command) {
-    final launcherService = Provider.of<LauncherService>(context, listen: false);
+    final launcherService = Provider.of<LauncherService>(
+      context,
+      listen: false,
+    );
     final focusService = Provider.of<FocusModeService>(context, listen: false);
 
     if (command.contains("open") || command.contains("launch")) {
-      final appName = command.replaceAll("open", "").replaceAll("launch", "").trim();
+      final appName = command
+          .replaceAll("open", "")
+          .replaceAll("launch", "")
+          .trim();
       final app = launcherService.apps.firstWhere(
         (a) => a.name.toLowerCase().contains(appName),
         orElse: () => launcherService.apps.first, // Dummy or error handle
@@ -68,7 +76,8 @@ class _VoiceActionOverlayState extends State<VoiceActionOverlay> {
       launcherService.launchApp(app.packageName);
     } else if (command.contains("work mode")) {
       focusService.setMode(LauncherMode.work);
-    } else if (command.contains("normal mode") || command.contains("home mode")) {
+    } else if (command.contains("normal mode") ||
+        command.contains("home mode")) {
       focusService.setMode(LauncherMode.normal);
     } else if (command.contains("focus mode") || command.contains("zen mode")) {
       focusService.setMode(LauncherMode.focus);
@@ -94,7 +103,11 @@ class _VoiceActionOverlayState extends State<VoiceActionOverlay> {
                   color: Colors.blueAccent.withOpacity(0.1),
                   border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
                 ),
-                child: const Icon(Icons.mic, color: Colors.blueAccent, size: 64),
+                child: const Icon(
+                  Icons.mic,
+                  color: Colors.blueAccent,
+                  size: 64,
+                ),
               ),
               const SizedBox(height: 40),
               Padding(
@@ -112,7 +125,10 @@ class _VoiceActionOverlayState extends State<VoiceActionOverlay> {
               const SizedBox(height: 100),
               TextButton(
                 onPressed: widget.onDismiss,
-                child: const Text("CANCEL", style: TextStyle(color: Colors.white38)),
+                child: const Text(
+                  "CANCEL",
+                  style: TextStyle(color: Colors.white38),
+                ),
               ),
             ],
           ),

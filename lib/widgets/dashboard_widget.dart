@@ -1,16 +1,77 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../widgets/financial_hud_widget.dart';
 import '../widgets/life_insights_widget.dart';
 import '../widgets/notification_center_widget.dart';
 
-class DashboardWidget extends StatelessWidget {
-  const DashboardWidget({Key? key}) : super(key: key);
+class DashboardWidget extends StatefulWidget {
+  const DashboardWidget({super.key});
+
+  @override
+  State<DashboardWidget> createState() => _DashboardWidgetState();
+}
+
+class _DashboardWidgetState extends State<DashboardWidget> {
+  static const platform = MethodChannel('com.example.launcher/apps');
+  late Timer _timer;
+  late Timer _fastTimer;
+  late DateTime _now;
+  int _memoryUsage = 84;
+  double _latency = 0.12;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _updateStats();
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _now = DateTime.now();
+        });
+      }
+    });
+    _fastTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      _updateStats();
+    });
+  }
+
+  Future<void> _updateStats() async {
+    try {
+      final Map<dynamic, dynamic>? stats = await platform.invokeMethod('getSystemStats');
+      if (stats != null) {
+        final mem = stats['memoryUsage'] as int;
+        // Simulating low latency for HUD feel
+        final lat = 0.08 + (DateTime.now().microsecond % 150) / 1000.0;
+        if (mounted) {
+          setState(() {
+            _memoryUsage = mem;
+            _latency = lat;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to get system stats: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _fastTimer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final timeStr = DateFormat('HH:mm').format(_now);
+    final dateStr = DateFormat('EEEE // MMM dd').format(_now).toUpperCase();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
@@ -65,7 +126,7 @@ class DashboardWidget extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "22:15",
+                                timeStr,
                                 style: TextStyle(
                                   color: Colors.cyanAccent.withOpacity(0.9),
                                   fontSize: 48,
@@ -76,9 +137,9 @@ class DashboardWidget extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              const Text(
-                                "SATURDAY // APR 18",
-                                style: TextStyle(
+                              Text(
+                                dateStr,
+                                style: const TextStyle(
                                   color: Colors.white38,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -93,9 +154,9 @@ class DashboardWidget extends StatelessWidget {
                       const SizedBox(height: 20),
                       Row(
                         children: [
-                          _buildStatItem(Icons.memory, "84%", "NEURAL LOAD"),
+                          _buildStatItem(Icons.memory, "$_memoryUsage%", "NEURAL LOAD"),
                           _buildStatDivider(),
-                          _buildStatItem(Icons.speed, "0.12ms", "LATENCY"),
+                          _buildStatItem(Icons.speed, "${_latency.toStringAsFixed(2)}ms", "LATENCY"),
                         ],
                       ),
                     ],
@@ -140,7 +201,7 @@ class DashboardWidget extends StatelessWidget {
           width: 60,
           height: 60,
           child: CircularProgressIndicator(
-            value: 0.7,
+            value: _memoryUsage / 100.0,
             strokeWidth: 2,
             backgroundColor: Colors.white10,
             valueColor: AlwaysStoppedAnimation<Color>(

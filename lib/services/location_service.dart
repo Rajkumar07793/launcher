@@ -5,7 +5,7 @@ import 'focus_mode_service.dart';
 
 class LocationService extends ChangeNotifier {
   final FocusModeService _focusService;
-  Position? _currentPosition;
+  // Position? _currentPosition;
   bool _isAutoModeEnabled = true;
 
   // Mock Work Location (coordinates would be set by user in a real app)
@@ -37,7 +37,7 @@ class LocationService extends ChangeNotifier {
         distanceFilter: 100, // Update every 100 meters
       ),
     ).listen((Position position) {
-      _currentPosition = position;
+      // _currentPosition = position;
       _checkGeofence(position);
     });
   }

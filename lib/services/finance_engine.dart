@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -23,14 +25,40 @@ class FinanceEngine extends ChangeNotifier {
 
   List<Transaction> get transactions => _transactions;
   double get dailySpent => _dailySpent;
+  bool _hasSmsPermission = false;
+  bool get hasSmsPermission => _hasSmsPermission;
 
   FinanceEngine() {
-    refreshFinanceData();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await checkSmsPermission();
+    if (_hasSmsPermission) {
+      await refreshFinanceData();
+    }
+  }
+
+  Future<void> checkSmsPermission() async {
+    _hasSmsPermission = await Permission.sms.isGranted;
+    notifyListeners();
+  }
+
+  Future<void> requestSmsPermission() async {
+    try {
+      final status = await Permission.sms.request();
+      _hasSmsPermission = status.isGranted;
+      if (_hasSmsPermission) {
+        await refreshFinanceData();
+      }
+      notifyListeners();
+    } catch (e) {
+      log(e.toString());
+    }
   }
 
   Future<void> refreshFinanceData() async {
-    var permission = await Permission.sms.status;
-    if (permission.isGranted) {
+    if (_hasSmsPermission) {
       final messages = await _query.querySms(
         kinds: [SmsQueryKind.inbox],
         count: 50, // Scan last 50 messages

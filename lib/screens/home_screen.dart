@@ -1,18 +1,19 @@
 import 'dart:io';
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/launcher_service.dart';
+
+import '../services/finance_engine.dart';
 import '../services/focus_mode_service.dart';
-import '../services/theme_service.dart';
-import '../widgets/smart_dock.dart';
+import '../services/launcher_service.dart';
 import '../widgets/app_grid.dart';
-import '../widgets/dashboard_widget.dart';
-import '../widgets/voice_action_overlay.dart';
 import '../widgets/circuit_background.dart';
+import '../widgets/dashboard_widget.dart';
+import '../widgets/smart_dock.dart';
+import '../widgets/voice_action_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -37,8 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final focusService = Provider.of<FocusModeService>(context);
     final launcherService = Provider.of<LauncherService>(context);
+    final financeService = Provider.of<FinanceEngine>(context);
 
-    const String bgPath = "/Users/rajkumar/.gemini/antigravity/brain/f4baf74e-3f5e-4055-944a-65b85f0dbb80/ai_robotics_preview_1776538562397.png";
+    const String bgPath =
+        "/Users/rajkumar/.gemini/antigravity/brain/f4baf74e-3f5e-4055-944a-65b85f0dbb80/ai_robotics_preview_1776538562397.png";
 
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
@@ -50,13 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Positioned.fill(
                 child: Opacity(
                   opacity: 0.3,
-                  child: Image.file(
-                    File(bgPath),
-                    fit: BoxFit.cover,
-                  ),
+                  child: Image.file(File(bgPath), fit: BoxFit.cover),
                 ),
               ),
-            
+
             // Neon Gradient Underlay
             Positioned.fill(
               child: DecoratedBox(
@@ -64,10 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   gradient: RadialGradient(
                     center: Alignment.topRight,
                     radius: 1.5,
-                    colors: [
-                      Colors.cyan.withOpacity(0.05),
-                      Colors.transparent,
-                    ],
+                    colors: [Colors.cyan.withOpacity(0.05), Colors.transparent],
                   ),
                 ),
               ),
@@ -79,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 16),
-                    
+
                     // Technical Header
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -91,12 +88,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.mic_none_rounded, color: Colors.cyanAccent, size: 28),
+                                icon: const Icon(
+                                  Icons.mic_none_rounded,
+                                  color: Colors.cyanAccent,
+                                  size: 28,
+                                ),
                                 onPressed: _triggerVoice,
                               ),
                               IconButton(
-                                icon: const Icon(Icons.settings_input_component_sharp, color: Colors.white38, size: 20),
-                                onPressed: () => launcherService.openLauncherSettings(),
+                                icon: const Icon(
+                                  Icons.settings_input_component_sharp,
+                                  color: Colors.white38,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    launcherService.openLauncherSettings(),
                               ),
                             ],
                           ),
@@ -118,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SmartDock(),
                     const SizedBox(height: 10),
                     AppGrid(searchQuery: _searchQuery),
-                    
+
                     const SizedBox(height: 120), // Banner space
                   ],
                 ),
@@ -127,10 +133,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Voice Overlay
             if (_isVoiceVisible)
-              VoiceActionOverlay(onDismiss: () => setState(() => _isVoiceVisible = false)),
-            
+              VoiceActionOverlay(
+                onDismiss: () => setState(() => _isVoiceVisible = false),
+              ),
+
             // Bottom Information Banners
-            _buildBanners(launcherService),
+            _buildBanners(launcherService, financeService),
           ],
         ),
       ),
@@ -142,7 +150,12 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         const Text(
           "CORE_SYNC: ACTIVE",
-          style: TextStyle(color: Colors.cyanAccent, fontSize: 7, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+          style: TextStyle(
+            color: Colors.cyanAccent,
+            fontSize: 7,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+          ),
         ),
         const SizedBox(height: 4),
         Container(
@@ -150,7 +163,11 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 1,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.transparent, Colors.cyanAccent.withOpacity(0.5), Colors.transparent],
+              colors: [
+                Colors.transparent,
+                Colors.cyanAccent.withOpacity(0.5),
+                Colors.transparent,
+              ],
             ),
           ),
         ),
@@ -169,11 +186,23 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(color: Colors.white, fontSize: 13, letterSpacing: 1),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          letterSpacing: 1,
+        ),
         decoration: InputDecoration(
           hintText: ">> EXECUTE_SEARCH_COMMAND...",
-          hintStyle: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 2),
-          prefixIcon: const Icon(Icons.terminal, color: Colors.cyanAccent, size: 16),
+          hintStyle: TextStyle(
+            color: Colors.white24,
+            fontSize: 10,
+            letterSpacing: 2,
+          ),
+          prefixIcon: const Icon(
+            Icons.terminal,
+            color: Colors.cyanAccent,
+            size: 16,
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
@@ -192,15 +221,31 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          _buildModeItem(focusService, LauncherMode.normal, Icons.dashboard_customize_outlined),
-          _buildModeItem(focusService, LauncherMode.work, Icons.terminal_outlined),
-          _buildModeItem(focusService, LauncherMode.focus, Icons.remove_red_eye_outlined),
+          _buildModeItem(
+            focusService,
+            LauncherMode.normal,
+            Icons.dashboard_customize_outlined,
+          ),
+          _buildModeItem(
+            focusService,
+            LauncherMode.work,
+            Icons.terminal_outlined,
+          ),
+          _buildModeItem(
+            focusService,
+            LauncherMode.focus,
+            Icons.remove_red_eye_outlined,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildModeItem(FocusModeService service, LauncherMode mode, IconData icon) {
+  Widget _buildModeItem(
+    FocusModeService service,
+    LauncherMode mode,
+    IconData icon,
+  ) {
     final isSelected = service.currentMode == mode;
     return GestureDetector(
       onTap: () => service.setMode(mode),
@@ -208,7 +253,9 @@ class _HomeScreenState extends State<HomeScreen> {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.cyanAccent.withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? Colors.cyanAccent.withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(
@@ -220,23 +267,45 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBanners(LauncherService service) {
+  Widget _buildBanners(LauncherService service, FinanceEngine finance) {
     return Positioned(
       bottom: 20,
       left: 20,
       right: 20,
       child: Column(
         children: [
+          if (!finance.hasSmsPermission)
+            _buildBanner(
+              "SMS Access Required",
+              Icons.sms_failed_outlined,
+              Colors.orangeAccent,
+              () => finance.requestSmsPermission(),
+            ),
           if (!service.hasUsagePermission)
-            _buildBanner("Usage Required", Icons.analytics_outlined, Colors.cyanAccent, () => service.requestUsagePermission()),
+            _buildBanner(
+              "Usage Required",
+              Icons.analytics_outlined,
+              Colors.cyanAccent,
+              () => service.requestUsagePermission(),
+            ),
           if (!service.isDefaultLauncher)
-            _buildBanner("Set Default", Icons.home_repair_service_outlined, Colors.blueAccent, () => service.openLauncherSettings()),
+            _buildBanner(
+              "Set Default",
+              Icons.home_repair_service_outlined,
+              Colors.blueAccent,
+              () => service.openLauncherSettings(),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildBanner(String text, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildBanner(
+    String text,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -251,9 +320,20 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(width: 12),
-            Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 12),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white24,
+              size: 12,
+            ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 class HexagonPainter extends CustomPainter {
@@ -48,27 +49,20 @@ class AppIconWidget extends StatelessWidget {
   final Uint8List iconBytes;
   final String packageName;
   final double size;
-  final VoidCallback? onSwipeUp;
   final VoidCallback? onLongPress;
 
   const AppIconWidget({
-    Key? key,
+    super.key,
     required this.iconBytes,
     required this.packageName,
     this.size = 50.0,
-    this.onSwipeUp,
     this.onLongPress,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: onLongPress,
-      onVerticalDragEnd: (details) {
-        if (details.primaryVelocity! < -300) {
-          onSwipeUp?.call();
-        }
-      },
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -77,16 +71,14 @@ class AppIconWidget extends StatelessWidget {
             size: Size(size * 1.2, size * 1.2),
             painter: HexagonPainter(color: Colors.cyanAccent.withOpacity(0.5)),
           ),
-          
+
           // Icon with Hexagon Clip
           ClipPath(
             clipper: HexagonClipper(),
             child: Container(
               width: size,
               height: size,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
-              ),
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.3)),
               child: Image.memory(
                 iconBytes,
                 width: size * 0.7,
@@ -95,7 +87,7 @@ class AppIconWidget extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Technical scanning overlay (subtle)
           Positioned(
             top: 0,

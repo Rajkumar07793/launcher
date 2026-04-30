@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'services/launcher_service.dart';
-import 'services/focus_mode_service.dart';
-import 'services/notification_service.dart';
-import 'services/theme_service.dart';
+
+import 'screens/home_screen.dart';
 import 'services/behavior_engine.dart';
 import 'services/finance_engine.dart';
+import 'services/focus_mode_service.dart';
+import 'services/launcher_service.dart';
 import 'services/location_service.dart';
-import 'screens/home_screen.dart';
+import 'services/notification_service.dart';
+import 'services/theme_service.dart';
 
 void main() {
   runApp(
@@ -20,8 +21,11 @@ void main() {
         ChangeNotifierProvider(create: (_) => BehaviorEngine()),
         ChangeNotifierProvider(create: (_) => FinanceEngine()),
         ChangeNotifierProxyProvider<FocusModeService, LocationService>(
-          create: (context) => LocationService(Provider.of<FocusModeService>(context, listen: false)),
-          update: (context, focus, previous) => previous ?? LocationService(focus),
+          create: (context) => LocationService(
+            Provider.of<FocusModeService>(context, listen: false),
+          ),
+          update: (context, focus, previous) =>
+              previous ?? LocationService(focus),
         ),
       ],
       child: const MyApp(),

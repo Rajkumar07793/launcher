@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/launcher_service.dart';
-import '../services/behavior_engine.dart';
+
 import '../logic/shortcut_helper.dart';
+import '../services/behavior_engine.dart';
+import '../services/launcher_service.dart';
 import 'app_icon_widget.dart';
 
 class SmartDock extends StatelessWidget {
@@ -12,7 +13,7 @@ class SmartDock extends StatelessWidget {
   Widget build(BuildContext context) {
     final launcherService = Provider.of<LauncherService>(context);
     final behavior = Provider.of<BehaviorEngine>(context);
-    
+
     // Use the Predictive Engine instead of the old static ContextEngine
     final suggestedApps = behavior.getPredictedApps(launcherService.apps);
 
@@ -31,7 +32,11 @@ class SmartDock extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 16),
+              const Icon(
+                Icons.auto_awesome,
+                color: Colors.cyanAccent,
+                size: 16,
+              ),
               const SizedBox(width: 8),
               const Text(
                 "PREDICTIVE_SUGGESTIONS",
@@ -45,7 +50,11 @@ class SmartDock extends StatelessWidget {
               const Spacer(),
               Text(
                 "[ ${behavior.currentContext.name.toUpperCase()} ]",
-                style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 8, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.2),
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -64,8 +73,8 @@ class SmartDock extends StatelessWidget {
                       iconBytes: app.icon,
                       packageName: app.packageName,
                       size: 50,
-                      onSwipeUp: () => launcherService.openAppInfo(app.packageName),
-                      onLongPress: () => ShortcutHelper.showShortcutMenu(context, app),
+                      onLongPress: () =>
+                          ShortcutHelper.showShortcutMenu(context, app),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -73,7 +82,12 @@ class SmartDock extends StatelessWidget {
                       child: Text(
                         app.name.toUpperCase(),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

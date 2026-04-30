@@ -1,15 +1,15 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 class CircuitBackground extends StatefulWidget {
   final Widget child;
-  const CircuitBackground({Key? key, required this.child}) : super(key: key);
+  const CircuitBackground({super.key, required this.child});
 
   @override
   State<CircuitBackground> createState() => _CircuitBackgroundState();
 }
 
-class _CircuitBackgroundState extends State<CircuitBackground> with SingleTickerProviderStateMixin {
+class _CircuitBackgroundState extends State<CircuitBackground>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -59,12 +59,36 @@ class CircuitPainter extends CustomPainter {
 
     // Fixed circuit paths for stability
     final paths = [
-      _createPath(const Offset(0.1, 0.1), const Offset(0.3, 0.1), const Offset(0.3, 0.3)),
-      _createPath(const Offset(0.9, 0.2), const Offset(0.7, 0.2), const Offset(0.7, 0.4)),
-      _createPath(const Offset(0.2, 0.8), const Offset(0.4, 0.8), const Offset(0.4, 0.6)),
-      _createPath(const Offset(0.8, 0.9), const Offset(0.6, 0.9), const Offset(0.6, 0.7)),
-      _createPath(const Offset(0.1, 0.5), const Offset(0.2, 0.5), const Offset(0.2, 0.4)),
-      _createPath(const Offset(0.9, 0.6), const Offset(0.8, 0.6), const Offset(0.8, 0.7)),
+      _createPath(
+        const Offset(0.1, 0.1),
+        const Offset(0.3, 0.1),
+        const Offset(0.3, 0.3),
+      ),
+      _createPath(
+        const Offset(0.9, 0.2),
+        const Offset(0.7, 0.2),
+        const Offset(0.7, 0.4),
+      ),
+      _createPath(
+        const Offset(0.2, 0.8),
+        const Offset(0.4, 0.8),
+        const Offset(0.4, 0.6),
+      ),
+      _createPath(
+        const Offset(0.8, 0.9),
+        const Offset(0.6, 0.9),
+        const Offset(0.6, 0.7),
+      ),
+      _createPath(
+        const Offset(0.1, 0.5),
+        const Offset(0.2, 0.5),
+        const Offset(0.2, 0.4),
+      ),
+      _createPath(
+        const Offset(0.9, 0.6),
+        const Offset(0.8, 0.6),
+        const Offset(0.8, 0.7),
+      ),
     ];
 
     for (var points in paths) {
@@ -90,7 +114,7 @@ class CircuitPainter extends CustomPainter {
     final pulsePaint = Paint()
       ..color = const Color(0xFF00F5FF).withOpacity(0.8)
       ..style = PaintingStyle.fill;
-    
+
     for (var points in paths) {
       // Logic to move a small dot along the path based on progress
       final totalPoints = points.length;
@@ -101,14 +125,18 @@ class CircuitPainter extends CustomPainter {
 
       final start = points[currentIdx];
       final end = points[nextIdx];
-      
+
       final currentPos = Offset(
         (start.dx + (end.dx - start.dx) * t) * size.width,
         (start.dy + (end.dy - start.dy) * t) * size.height,
       );
 
       canvas.drawCircle(currentPos, 1.5, pulsePaint);
-      canvas.drawCircle(currentPos, 4, Paint()..color = const Color(0xFF00F5FF).withOpacity(0.1));
+      canvas.drawCircle(
+        currentPos,
+        4,
+        Paint()..color = const Color(0xFF00F5FF).withOpacity(0.1),
+      );
     }
   }
 
@@ -117,5 +145,6 @@ class CircuitPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CircuitPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(covariant CircuitPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

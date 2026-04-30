@@ -153,6 +153,14 @@ class MainActivity : FlutterActivity() {
                     openNotificationSettings()
                     result.success(true)
                 }
+                "getSystemStats" -> {
+                    val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+                    val memoryInfo = android.app.ActivityManager.MemoryInfo()
+                    activityManager.getMemoryInfo(memoryInfo)
+                    val usedMem = memoryInfo.totalMem - memoryInfo.availMem
+                    val percent = (usedMem.toDouble() / memoryInfo.totalMem.toDouble() * 100).toInt()
+                    result.success(mapOf("memoryUsage" to percent))
+                }
                 else -> {
                     result.notImplemented()
                 }
