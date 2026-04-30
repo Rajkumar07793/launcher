@@ -4,7 +4,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../services/theme_service.dart';
 import '../widgets/financial_hud_widget.dart';
 import '../widgets/life_insights_widget.dart';
 import '../widgets/notification_center_widget.dart';
@@ -46,7 +48,6 @@ class _DashboardWidgetState extends State<DashboardWidget> {
       final Map<dynamic, dynamic>? stats = await platform.invokeMethod('getSystemStats');
       if (stats != null) {
         final mem = stats['memoryUsage'] as int;
-        // Simulating low latency for HUD feel
         final lat = 0.08 + (DateTime.now().microsecond % 150) / 1000.0;
         if (mounted) {
           setState(() {
@@ -69,6 +70,8 @@ class _DashboardWidgetState extends State<DashboardWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final themeService = Provider.of<ThemeService>(context);
+    final primaryColor = themeService.systemAccent;
     final timeStr = DateFormat('HH:mm').format(_now);
     final dateStr = DateFormat('EEEE // MMM dd').format(_now).toUpperCase();
 
@@ -76,13 +79,12 @@ class _DashboardWidgetState extends State<DashboardWidget> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         children: [
-          // Technical HUD Readouts
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildTechTag("SYSTEM: OPERATIONAL", Colors.cyanAccent),
+                _buildTechTag("SYSTEM: OPERATIONAL", primaryColor),
                 _buildTechTag("AI_CORE: ENGAGED", Colors.blueAccent),
               ],
             ),
@@ -92,12 +94,12 @@ class _DashboardWidgetState extends State<DashboardWidget> {
           const SizedBox(height: 12),
 
           Container(
-            padding: const EdgeInsets.all(2), // For border glow
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.cyanAccent.withOpacity(0.05),
+                  color: primaryColor.withOpacity(0.05),
                   blurRadius: 20,
                   spreadRadius: -5,
                 ),
@@ -113,7 +115,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                     color: const Color(0xFF0F172A).withOpacity(0.4),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.cyanAccent.withOpacity(0.2),
+                      color: primaryColor.withOpacity(0.2),
                       width: 1.5,
                     ),
                   ),
@@ -128,7 +130,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                               Text(
                                 timeStr,
                                 style: TextStyle(
-                                  color: Colors.cyanAccent.withOpacity(0.9),
+                                  color: primaryColor.withOpacity(0.9),
                                   fontSize: 48,
                                   fontWeight: FontWeight.w100,
                                   letterSpacing: -2,
@@ -148,7 +150,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                               ),
                             ],
                           ),
-                          _buildcircularStatus(),
+                          _buildcircularStatus(primaryColor),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -193,7 +195,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
     );
   }
 
-  Widget _buildcircularStatus() {
+  Widget _buildcircularStatus(Color color) {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -205,13 +207,13 @@ class _DashboardWidgetState extends State<DashboardWidget> {
             strokeWidth: 2,
             backgroundColor: Colors.white10,
             valueColor: AlwaysStoppedAnimation<Color>(
-              Colors.cyanAccent.withOpacity(0.5),
+              color.withOpacity(0.5),
             ),
           ),
         ),
         Icon(
           Icons.hub_outlined,
-          color: Colors.cyanAccent.withOpacity(0.8),
+          color: color.withOpacity(0.8),
           size: 24,
         ),
       ],

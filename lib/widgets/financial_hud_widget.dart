@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/finance_engine.dart';
+import '../services/theme_service.dart';
 
 class FinancialHudWidget extends StatelessWidget {
   const FinancialHudWidget({Key? key}) : super(key: key);
@@ -8,14 +9,16 @@ class FinancialHudWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final finance = Provider.of<FinanceEngine>(context);
+    final theme = Provider.of<ThemeService>(context);
+    final primaryColor = theme.systemAccent;
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.02),
         border: Border(
-          bottom: BorderSide(color: Colors.cyanAccent.withOpacity(0.1)),
-          right: BorderSide(color: Colors.cyanAccent.withOpacity(0.1)),
+          bottom: BorderSide(color: primaryColor.withOpacity(0.1)),
+          right: BorderSide(color: primaryColor.withOpacity(0.1)),
         ),
       ),
       child: Row(
@@ -26,37 +29,53 @@ class FinancialHudWidget extends StatelessWidget {
             children: [
               const Text(
                 "FINANCIAL_EXPLOIT: DETECTED",
-                style: TextStyle(color: Colors.amberAccent, fontSize: 7, fontWeight: FontWeight.bold, letterSpacing: 1),
+                style: TextStyle(
+                  color: Colors.amberAccent,
+                  fontSize: 7,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
               ),
               const SizedBox(height: 4),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  const Text("Σ ", style: TextStyle(color: Colors.cyanAccent, fontSize: 14)),
+                  Text("Σ ", style: TextStyle(color: primaryColor, fontSize: 14)),
                   Text(
                     finance.dailySpent.toStringAsFixed(2),
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w100, letterSpacing: -1),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w100,
+                      letterSpacing: -1,
+                    ),
                   ),
                   const SizedBox(width: 4),
-                  const Text("DEBITED today", style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1)),
+                  const Text(
+                    "DEBITED today",
+                    style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1),
+                  ),
                 ],
               ),
             ],
           ),
           
-          _buildMiniChart(finance),
+          _buildMiniChart(finance, primaryColor),
         ],
       ),
     );
   }
 
-  Widget _buildMiniChart(FinanceEngine finance) {
+  Widget _buildMiniChart(FinanceEngine finance, Color color) {
     return SizedBox(
       width: 60,
       height: 30,
       child: CustomPaint(
-        painter: SparklinePainter(finance.transactions.take(5).map((e) => e.amount).toList()),
+        painter: SparklinePainter(
+          finance.transactions.take(5).map((e) => e.amount).toList(),
+          color,
+        ),
       ),
     );
   }
@@ -64,14 +83,15 @@ class FinancialHudWidget extends StatelessWidget {
 
 class SparklinePainter extends CustomPainter {
   final List<double> data;
-  SparklinePainter(this.data);
+  final Color color;
+  SparklinePainter(this.data, this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
     if (data.length < 2) return;
     
     final paint = Paint()
-      ..color = Colors.cyanAccent.withOpacity(0.5)
+      ..color = color.withOpacity(0.5)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 

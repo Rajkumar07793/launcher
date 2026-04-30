@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/app_info.dart';
+import '../services/theme_service.dart';
 
 class HolographicFolder extends StatefulWidget {
   final String name;
@@ -50,6 +52,9 @@ class _HolographicFolderState extends State<HolographicFolder>
 
   @override
   Widget build(BuildContext context) {
+    final themeService = Provider.of<ThemeService>(context);
+    final primaryColor = themeService.systemAccent;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -74,22 +79,24 @@ class _HolographicFolderState extends State<HolographicFolder>
                 });
               },
               onTap: widget.onExpand,
+              onDoubleTap: widget.onExpand,
+              onLongPress: widget.onExpand,
               child: AnimatedScale(
                 scale: _scale,
                 duration: const Duration(milliseconds: 100),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.cyanAccent.withOpacity(0.03),
+                    color: primaryColor.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.cyanAccent.withOpacity(
+                      color: primaryColor.withOpacity(
                         0.2 * _pulseController.value + 0.1,
                       ),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.cyanAccent.withOpacity(
+                        color: primaryColor.withOpacity(
                           0.05 * _pulseController.value,
                         ),
                         blurRadius: 15,
@@ -99,10 +106,10 @@ class _HolographicFolderState extends State<HolographicFolder>
                   ),
                   child: Stack(
                     children: [
-                      _buildCorner(0, 0),
-                      _buildCorner(1, 0),
-                      _buildCorner(0, 1),
-                      _buildCorner(1, 1),
+                      _buildCorner(0, 0, primaryColor),
+                      _buildCorner(1, 0, primaryColor),
+                      _buildCorner(0, 1, primaryColor),
+                      _buildCorner(1, 1, primaryColor),
                       Padding(
                         padding: const EdgeInsets.all(10),
                         child: AbsorbPointer(
@@ -118,17 +125,24 @@ class _HolographicFolderState extends State<HolographicFolder>
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          widget.name.toUpperCase(),
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
+        GestureDetector(
+          onTap: widget.onExpand,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            color: Colors.transparent, // Increase tap area
+            child: Text(
+              widget.name.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -160,7 +174,7 @@ class _HolographicFolderState extends State<HolographicFolder>
     );
   }
 
-  Widget _buildCorner(double x, double y) {
+  Widget _buildCorner(double x, double y, Color color) {
     return Positioned(
       left: x == 0 ? 8 : null,
       right: x == 1 ? 8 : null,
@@ -172,28 +186,16 @@ class _HolographicFolderState extends State<HolographicFolder>
         decoration: BoxDecoration(
           border: Border(
             left: x == 0
-                ? BorderSide(
-                    color: Colors.cyanAccent.withOpacity(0.5),
-                    width: 1,
-                  )
+                ? BorderSide(color: color.withOpacity(0.5), width: 1)
                 : BorderSide.none,
             right: x == 1
-                ? BorderSide(
-                    color: Colors.cyanAccent.withOpacity(0.5),
-                    width: 1,
-                  )
+                ? BorderSide(color: color.withOpacity(0.5), width: 1)
                 : BorderSide.none,
             top: y == 0
-                ? BorderSide(
-                    color: Colors.cyanAccent.withOpacity(0.5),
-                    width: 1,
-                  )
+                ? BorderSide(color: color.withOpacity(0.5), width: 1)
                 : BorderSide.none,
             bottom: y == 1
-                ? BorderSide(
-                    color: Colors.cyanAccent.withOpacity(0.5),
-                    width: 1,
-                  )
+                ? BorderSide(color: color.withOpacity(0.5), width: 1)
                 : BorderSide.none,
           ),
         ),

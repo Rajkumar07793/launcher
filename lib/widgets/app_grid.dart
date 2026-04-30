@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:launcher/services/theme_service.dart';
 import 'package:provider/provider.dart';
 
 import '../logic/shortcut_helper.dart';
@@ -20,12 +21,14 @@ class AppGrid extends StatefulWidget {
 
 class _AppGridState extends State<AppGrid> {
   bool _isFolderView = false;
+  bool _sortByUsage = false;
   int? _expandedCategory;
 
   @override
   Widget build(BuildContext context) {
     final launcherService = Provider.of<LauncherService>(context);
     final focusService = Provider.of<FocusModeService>(context);
+    final behavior = Provider.of<BehaviorEngine>(context);
 
     final filteredApps = launcherService.apps.where((app) {
       final matchesSearch =
@@ -34,6 +37,14 @@ class _AppGridState extends State<AppGrid> {
       final allowedByFocus = focusService.isAppAllowed(app.packageName);
       return matchesSearch && allowedByFocus;
     }).toList();
+
+    if (_sortByUsage) {
+      filteredApps.sort((a, b) {
+        final freqA = behavior.appFrequencies[a.packageName] ?? 0;
+        final freqB = behavior.appFrequencies[b.packageName] ?? 0;
+        return freqB.compareTo(freqA); // High frequency first
+      });
+    }
 
     if (launcherService.isLoading) {
       return const Padding(
@@ -46,12 +57,54 @@ class _AppGridState extends State<AppGrid> {
       children: [
         if (widget.searchQuery.isEmpty)
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                // Sort Toggle
+                GestureDetector(
+                  onTap: () => setState(() => _sortByUsage = !_sortByUsage),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _sortByUsage
+                          ? Provider.of<ThemeService>(context).systemAccent.withOpacity(0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: _sortByUsage
+                            ? Provider.of<ThemeService>(context).systemAccent.withOpacity(0.5)
+                            : Colors.white10,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sort_rounded,
+                          size: 12,
+                          color: _sortByUsage
+                              ? Provider.of<ThemeService>(context).systemAccent
+                              : Colors.white38,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "USAGE_RANK",
+                          style: TextStyle(
+                            color: _sortByUsage
+                                ? Provider.of<ThemeService>(context).systemAccent
+                                : Colors.white38,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
                 const Text(
-                  "Folder View",
+                  "Folders",
                   style: TextStyle(color: Colors.white38, fontSize: 10),
                 ),
                 Transform.scale(
@@ -62,7 +115,7 @@ class _AppGridState extends State<AppGrid> {
                       _isFolderView = v;
                       _expandedCategory = null;
                     }),
-                    activeColor: Colors.blueAccent,
+                    activeColor: Provider.of<ThemeService>(context).systemAccent,
                   ),
                 ),
               ],
@@ -77,13 +130,14 @@ class _AppGridState extends State<AppGrid> {
 
   Widget _buildGridView(List<AppInfo> apps, LauncherService launcherService) {
     if (apps.isEmpty) return _buildEmptyState();
+    final themeService = Provider.of<ThemeService>(context);
 
     return GridView.builder(
       padding: const EdgeInsets.all(20),
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: themeService.gridCount,
         mainAxisSpacing: 24,
         crossAxisSpacing: 16,
         childAspectRatio: 0.7,
@@ -184,12 +238,12 @@ class _AppGridState extends State<AppGrid> {
     Map<String, dynamic> meta,
     LauncherService launcherService,
   ) {
+    final theme = Provider.of<ThemeService>(context);
     return GestureDetector(
       onScaleUpdate: (details) {
         setState(() {
           _pinchScale = details.scale.clamp(0.4, 1.0);
         });
-        // Pinch in to collapse
         if (_pinchScale < 0.6) {
           setState(() {
             _expandedCategory = null;
@@ -211,17 +265,17 @@ class _AppGridState extends State<AppGrid> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios_new,
-                      color: Colors.cyanAccent,
+                      color: theme.systemAccent,
                       size: 14,
                     ),
                     onPressed: () => setState(() => _expandedCategory = null),
                   ),
                   Text(
                     meta["name"].toString().toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.cyanAccent,
+                    style: TextStyle(
+                      color: theme.systemAccent,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2,

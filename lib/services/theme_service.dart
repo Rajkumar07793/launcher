@@ -5,8 +5,29 @@ import '../models/app_info.dart';
 
 class ThemeService extends ChangeNotifier {
   Color _accentColor = Colors.blueAccent;
+  Color _systemAccent = Colors.cyanAccent;
+  int _gridCount = 4;
+  String? _wallpaperPath;
 
   Color get accentColor => _accentColor;
+  Color get systemAccent => _systemAccent;
+  int get gridCount => _gridCount;
+  String? get wallpaperPath => _wallpaperPath;
+
+  void setSystemAccent(Color color) {
+    _systemAccent = color;
+    notifyListeners();
+  }
+
+  void setGridCount(int count) {
+    _gridCount = count;
+    notifyListeners();
+  }
+
+  void setWallpaperPath(String? path) {
+    _wallpaperPath = path;
+    notifyListeners();
+  }
 
   Future<void> updateThemeFromApp(AppInfo app) async {
     try {
@@ -20,7 +41,6 @@ class ThemeService extends ChangeNotifier {
           paletteGenerator.vibrantColor?.color ??
           Colors.blueAccent;
 
-      // Ensure the color is not too dark/light if needed
       notifyListeners();
     } catch (e) {
       debugPrint("Error updating theme from app: $e");
@@ -29,6 +49,8 @@ class ThemeService extends ChangeNotifier {
 
   void resetTheme() {
     _accentColor = Colors.blueAccent;
+    _systemAccent = Colors.cyanAccent;
+    _gridCount = 4;
     notifyListeners();
   }
 }

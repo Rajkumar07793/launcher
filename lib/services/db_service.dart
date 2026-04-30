@@ -21,6 +21,17 @@ class DatabaseService {
       path,
       version: 1,
       onCreate: _createDB,
+      onOpen: (db) async {
+        // Migration: Ensure geo columns exist
+        final columns = await db.rawQuery('PRAGMA table_info(app_usage_logs)');
+        final columnNames = columns.map((e) => e['name'] as String).toSet();
+        if (!columnNames.contains('latitude')) {
+          await db.execute('ALTER TABLE app_usage_logs ADD COLUMN latitude REAL');
+        }
+        if (!columnNames.contains('longitude')) {
+          await db.execute('ALTER TABLE app_usage_logs ADD COLUMN longitude REAL');
+        }
+      },
     );
   }
 
@@ -33,6 +44,8 @@ class DatabaseService {
         timestamp INTEGER NOT NULL,
         hourOfDay INTEGER NOT NULL,
         dayOfWeek INTEGER NOT NULL,
+        latitude REAL,
+        longitude REAL,
         sessionDuration INTEGER DEFAULT 0
       )
     ''');
@@ -48,7 +61,7 @@ class DatabaseService {
     ''');
   }
 
-  Future<void> logAppOpen(String packageName) async {
+  Future<void> logAppOpen(String packageName, {double? lat, double? lng}) async {
     final db = await instance.database;
     final now = DateTime.now();
     await db.insert('app_usage_logs', {
@@ -56,6 +69,8 @@ class DatabaseService {
       'timestamp': now.millisecondsSinceEpoch,
       'hourOfDay': now.hour,
       'dayOfWeek': now.weekday,
+      'latitude': lat,
+      'longitude': lng,
     });
   }
 
@@ -69,6 +84,17 @@ class DatabaseService {
       orderBy: 'COUNT(*) DESC',
       limit: 5,
     );
+  }
+
+  Future<Map<String, int>> getAllFrequencies() async {
+    final db = await instance.database;
+    final res = await db.rawQuery(
+      'SELECT packageName, COUNT(*) as count FROM app_usage_logs GROUP BY packageName',
+    );
+    return {
+      for (var item in res)
+        item['packageName'] as String: item['count'] as int,
+    };
   }
 
   Future<void> close() async {

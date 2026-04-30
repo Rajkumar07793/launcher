@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:launcher/services/behavior_engine.dart';
 import 'package:provider/provider.dart';
 
 import '../services/finance_engine.dart';
 import '../services/focus_mode_service.dart';
 import '../services/launcher_service.dart';
+import '../services/theme_service.dart';
 import '../widgets/app_grid.dart';
 import '../widgets/circuit_background.dart';
 import '../widgets/dashboard_widget.dart';
@@ -34,14 +37,22 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isVoiceVisible = true);
   }
 
+  Future<void> _pickWallpaper(ThemeService themeService) async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      themeService.setWallpaperPath(image.path);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final focusService = Provider.of<FocusModeService>(context);
     final launcherService = Provider.of<LauncherService>(context);
     final financeService = Provider.of<FinanceEngine>(context);
+    final themeService = Provider.of<ThemeService>(context);
 
-    const String bgPath =
-        "/Users/rajkumar/.gemini/antigravity/brain/f4baf74e-3f5e-4055-944a-65b85f0dbb80/ai_robotics_preview_1776538562397.png";
+    final String? bgPath = themeService.wallpaperPath;
 
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
@@ -49,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Stack(
           children: [
             // AI Robotics Background Image (Atmospheric Overlay)
-            if (File(bgPath).existsSync())
+            if (bgPath != null && File(bgPath).existsSync())
               Positioned.fill(
                 child: Opacity(
                   opacity: 0.3,
@@ -64,7 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   gradient: RadialGradient(
                     center: Alignment.topRight,
                     radius: 1.5,
-                    colors: [Colors.cyan.withOpacity(0.05), Colors.transparent],
+                    colors: [
+                      themeService.systemAccent.withOpacity(0.05),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
               ),
@@ -83,26 +97,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildModeToggle(focusService),
-                          _buildHudClockTag(),
+                          _buildModeToggle(focusService, themeService),
+                          _buildHudClockTag(themeService),
                           Row(
                             children: [
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.mic_none_rounded,
-                                  color: Colors.cyanAccent,
+                                  color: themeService.systemAccent,
                                   size: 28,
                                 ),
                                 onPressed: _triggerVoice,
                               ),
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.settings_input_component_sharp,
-                                  color: Colors.white38,
+                                  color: themeService.systemAccent,
                                   size: 20,
                                 ),
-                                onPressed: () =>
-                                    launcherService.openLauncherSettings(),
+                                onPressed: () => _showSettingsDialog(context),
                               ),
                             ],
                           ),
@@ -117,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Technical Search Bar
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildHudSearch(),
+                      child: _buildHudSearch(themeService),
                     ),
 
                     const SizedBox(height: 20),
@@ -138,20 +151,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
             // Bottom Information Banners
-            _buildBanners(launcherService, financeService),
+            _buildBanners(launcherService, financeService, themeService),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHudClockTag() {
+  Widget _buildHudClockTag(ThemeService themeService) {
     return Column(
       children: [
-        const Text(
+        Text(
           "CORE_SYNC: ACTIVE",
           style: TextStyle(
-            color: Colors.cyanAccent,
+            color: themeService.systemAccent,
             fontSize: 7,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
@@ -165,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
             gradient: LinearGradient(
               colors: [
                 Colors.transparent,
-                Colors.cyanAccent.withOpacity(0.5),
+                themeService.systemAccent.withOpacity(0.5),
                 Colors.transparent,
               ],
             ),
@@ -175,12 +188,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHudSearch() {
+  Widget _buildHudSearch(ThemeService themeService) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.02),
         border: Border(
-          left: BorderSide(color: Colors.cyanAccent.withOpacity(0.4), width: 2),
+          left: BorderSide(
+            color: themeService.systemAccent.withOpacity(0.4),
+            width: 2,
+          ),
           bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
         ),
       ),
@@ -193,14 +209,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         decoration: InputDecoration(
           hintText: ">> EXECUTE_SEARCH_COMMAND...",
-          hintStyle: TextStyle(
+          hintStyle: const TextStyle(
             color: Colors.white24,
             fontSize: 10,
             letterSpacing: 2,
           ),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.terminal,
-            color: Colors.cyanAccent,
+            color: themeService.systemAccent,
             size: 16,
           ),
           border: InputBorder.none,
@@ -211,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildModeToggle(FocusModeService focusService) {
+  Widget _buildModeToggle(FocusModeService focusService, ThemeService theme) {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
@@ -225,16 +241,19 @@ class _HomeScreenState extends State<HomeScreen> {
             focusService,
             LauncherMode.normal,
             Icons.dashboard_customize_outlined,
+            theme,
           ),
           _buildModeItem(
             focusService,
             LauncherMode.work,
             Icons.terminal_outlined,
+            theme,
           ),
           _buildModeItem(
             focusService,
             LauncherMode.focus,
             Icons.remove_red_eye_outlined,
+            theme,
           ),
         ],
       ),
@@ -245,6 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
     FocusModeService service,
     LauncherMode mode,
     IconData icon,
+    ThemeService theme,
   ) {
     final isSelected = service.currentMode == mode;
     return GestureDetector(
@@ -254,20 +274,24 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.cyanAccent.withOpacity(0.1)
+              ? theme.systemAccent.withOpacity(0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(
           icon,
           size: 16,
-          color: isSelected ? Colors.cyanAccent : Colors.white38,
+          color: isSelected ? theme.systemAccent : Colors.white38,
         ),
       ),
     );
   }
 
-  Widget _buildBanners(LauncherService service, FinanceEngine finance) {
+  Widget _buildBanners(
+    LauncherService service,
+    FinanceEngine finance,
+    ThemeService theme,
+  ) {
     bool anyMissing =
         !finance.hasSmsPermission ||
         !service.hasUsagePermission ||
@@ -298,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildBanner(
               "Usage Required",
               Icons.analytics_outlined,
-              Colors.cyanAccent,
+              theme.systemAccent,
               () => service.requestUsagePermission(),
             ),
           if (!service.isDefaultLauncher)
@@ -314,48 +338,49 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showRestrictedSettingsGuide(BuildContext context) {
+    final theme = Provider.of<ThemeService>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF0F172A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Colors.cyanAccent, width: 1),
+          side: BorderSide(color: theme.systemAccent, width: 1),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.security, color: Colors.cyanAccent),
-            SizedBox(width: 10),
-            Text(
+            Icon(Icons.security, color: theme.systemAccent),
+            const SizedBox(width: 10),
+            const Text(
               "Restricted Settings",
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               "Android 13+ Security Feature",
               style: TextStyle(
-                color: Colors.cyanAccent,
+                color: theme.systemAccent,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               "Android blocks sensitive permissions for sideloaded apps to protect against malware. If a setting is grayed out, follow these steps:",
               style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               "1. Open System Settings\n2. Navigate to Apps\n3. Select 'AI Launcher'\n4. Tap the three dots (⋮) or 'More' at the top right\n5. Select 'Allow restricted settings'",
               style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               "After enabling this, you can return here and grant the required permissions.",
               style: TextStyle(
                 color: Colors.white38,
@@ -368,16 +393,255 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               "UNDERSTOOD",
               style: TextStyle(
-                color: Colors.cyanAccent,
+                color: theme.systemAccent,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final themeService = Provider.of<ThemeService>(context);
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0F172A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: themeService.systemAccent, width: 1),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.tune, color: themeService.systemAccent),
+              const SizedBox(width: 10),
+              const Text(
+                "SYSTEM_CONFIG",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  letterSpacing: 2,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "GRID_DENSITY",
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "COLUMNS",
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  DropdownButton<int>(
+                    value: themeService.gridCount,
+                    dropdownColor: const Color(0xFF1E293B),
+                    underline: Container(),
+                    items: [2, 3, 4, 5, 6].map((int value) {
+                      return DropdownMenuItem<int>(
+                        value: value,
+                        child: Text(
+                          value.toString(),
+                          style: TextStyle(color: themeService.systemAccent),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) themeService.setGridCount(v);
+                    },
+                  ),
+                ],
+              ),
+              const Text(
+                "INTELLIGENCE_LAYER",
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "SMART_MODE",
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  Switch(
+                    value: Provider.of<BehaviorEngine>(context).isSmartMode,
+                    activeColor: themeService.systemAccent,
+                    onChanged: (v) => Provider.of<BehaviorEngine>(
+                      context,
+                      listen: false,
+                    ).toggleSmartMode(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                "WALLPAPER_CONFIG",
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _pickWallpaper(themeService),
+                icon: const Icon(Icons.image_outlined, size: 16),
+                label: const Text(
+                  "SELECT_WALLPAPER",
+                  style: TextStyle(fontSize: 10),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: themeService.systemAccent,
+                  side: BorderSide(
+                    color: themeService.systemAccent.withOpacity(0.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                "ACCENT_COLOR",
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Full Spectrum Hue Slider
+              Container(
+                height: 30,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Colors.red,
+                      Colors.yellow,
+                      Colors.green,
+                      Colors.cyan,
+                      Colors.blue,
+                      Colors.purple,
+                      Colors.red,
+                    ],
+                  ),
+                ),
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 30,
+                    overlayColor: Colors.transparent,
+                    activeTrackColor: Colors.transparent,
+                    inactiveTrackColor: Colors.transparent,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 10,
+                      elevation: 5,
+                    ),
+                    thumbColor: Colors.white,
+                  ),
+                  child: Slider(
+                    value: HSVColor.fromColor(themeService.systemAccent).hue,
+                    min: 0,
+                    max: 360,
+                    onChanged: (h) {
+                      themeService.setSystemAccent(
+                        HSVColor.fromColor(
+                          themeService.systemAccent,
+                        ).withHue(h).toColor(),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children:
+                      [
+                        Colors.cyanAccent,
+                        Colors.blueAccent,
+                        Colors.purpleAccent,
+                        Colors.pinkAccent,
+                        Colors.orangeAccent,
+                        Colors.greenAccent,
+                        Colors.redAccent,
+                      ].map((color) {
+                        final isSelected = themeService.systemAccent == color;
+                        return GestureDetector(
+                          onTap: () => themeService.setSystemAccent(color),
+                          child: Container(
+                            width: 30,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: Colors.white, width: 2)
+                                  : null,
+                              boxShadow: [
+                                if (isSelected)
+                                  BoxShadow(
+                                    color: color.withOpacity(0.5),
+                                    blurRadius: 10,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextButton.icon(
+                onPressed: () => Provider.of<LauncherService>(
+                  context,
+                  listen: false,
+                ).openLauncherSettings(),
+                icon: const Icon(Icons.settings, size: 16),
+                label: const Text(
+                  "ANDROID_SETTINGS",
+                  style: TextStyle(fontSize: 10),
+                ),
+                style: TextButton.styleFrom(foregroundColor: Colors.white24),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "CLOSE",
+                style: TextStyle(
+                  color: themeService.systemAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -2,6 +2,8 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/theme_service.dart';
 
 class HexagonPainter extends CustomPainter {
   final Color color;
@@ -61,6 +63,9 @@ class AppIconWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeService>(context);
+    final primaryColor = theme.systemAccent;
+
     return GestureDetector(
       onLongPress: onLongPress,
       child: Stack(
@@ -69,7 +74,7 @@ class AppIconWidget extends StatelessWidget {
           // Hexagon Border
           CustomPaint(
             size: Size(size * 1.2, size * 1.2),
-            painter: HexagonPainter(color: Colors.cyanAccent.withOpacity(0.5)),
+            painter: HexagonPainter(color: primaryColor.withOpacity(0.5)),
           ),
 
           // Icon with Hexagon Clip
@@ -97,7 +102,7 @@ class AppIconWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.cyanAccent.withOpacity(0.3),
+                    color: primaryColor.withOpacity(0.3),
                     blurRadius: 4,
                   ),
                 ],

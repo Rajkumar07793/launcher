@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/theme_service.dart';
 
 class CircuitBackground extends StatefulWidget {
   final Widget child;
@@ -29,11 +31,12 @@ class _CircuitBackgroundState extends State<CircuitBackground>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeService>(context);
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
         return CustomPaint(
-          painter: CircuitPainter(_controller.value),
+          painter: CircuitPainter(_controller.value, theme.systemAccent),
           child: widget.child,
         );
       },
@@ -43,21 +46,21 @@ class _CircuitBackgroundState extends State<CircuitBackground>
 
 class CircuitPainter extends CustomPainter {
   final double progress;
-  CircuitPainter(this.progress);
+  final Color primaryColor;
+  CircuitPainter(this.progress, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF00F5FF).withOpacity(0.15)
+      ..color = primaryColor.withOpacity(0.15)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
     final glowPaint = Paint()
-      ..color = const Color(0xFF00F5FF).withOpacity(0.05)
+      ..color = primaryColor.withOpacity(0.05)
       ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke;
 
-    // Fixed circuit paths for stability
     final paths = [
       _createPath(
         const Offset(0.1, 0.1),
@@ -100,23 +103,20 @@ class CircuitPainter extends CustomPainter {
       canvas.drawPath(path, glowPaint);
       canvas.drawPath(path, paint);
 
-      // Draw small "nodes" at joints
       for (var p in points) {
         canvas.drawCircle(
           Offset(p.dx * size.width, p.dy * size.height),
           2,
-          Paint()..color = const Color(0xFF00F5FF).withOpacity(0.3),
+          Paint()..color = primaryColor.withOpacity(0.3),
         );
       }
     }
 
-    // Animated "data pulse"
     final pulsePaint = Paint()
-      ..color = const Color(0xFF00F5FF).withOpacity(0.8)
+      ..color = primaryColor.withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
     for (var points in paths) {
-      // Logic to move a small dot along the path based on progress
       final totalPoints = points.length;
       final segmentProgress = (progress * totalPoints) % totalPoints;
       final currentIdx = segmentProgress.floor();
@@ -135,7 +135,7 @@ class CircuitPainter extends CustomPainter {
       canvas.drawCircle(
         currentPos,
         4,
-        Paint()..color = const Color(0xFF00F5FF).withOpacity(0.1),
+        Paint()..color = primaryColor.withOpacity(0.1),
       );
     }
   }
@@ -146,5 +146,5 @@ class CircuitPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CircuitPainter oldDelegate) =>
-      oldDelegate.progress != progress;
+      oldDelegate.progress != progress || oldDelegate.primaryColor != primaryColor;
 }

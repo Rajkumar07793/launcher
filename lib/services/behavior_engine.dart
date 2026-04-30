@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../models/app_info.dart';
 import 'db_service.dart';
@@ -9,12 +10,29 @@ class BehaviorEngine extends ChangeNotifier {
   final DatabaseService _db = DatabaseService.instance;
   final Map<String, dynamic> _predictions = {};
   List<String> _insights = [];
+  Map<String, int> _appFrequencies = {};
+  bool _isSmartMode = true;
 
   Map<String, dynamic> get predictions => _predictions;
   List<String> get insights => _insights;
+  Map<String, int> get appFrequencies => _appFrequencies;
+  bool get isSmartMode => _isSmartMode;
 
   BehaviorEngine() {
-    _refreshInsights();
+    _init();
+  }
+
+  Future<void> _init() async {
+    debugPrint("BehaviorEngine: Initializing intelligence layer...");
+    _appFrequencies = await _db.getAllFrequencies();
+    await _refreshInsights();
+    debugPrint("BehaviorEngine: Insights generated: ${_insights.length}");
+    notifyListeners();
+  }
+
+  void toggleSmartMode() {
+    _isSmartMode = !_isSmartMode;
+    notifyListeners();
   }
 
   ContextTime get currentContext {
@@ -26,39 +44,75 @@ class BehaviorEngine extends ChangeNotifier {
   }
 
   Future<void> logEngagement(String packageName) async {
-    await _db.logAppOpen(packageName);
+    double? lat, lng;
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 2),
+      );
+      lat = position.latitude;
+      lng = position.longitude;
+    } catch (e) {
+      debugPrint("Location capture failed: $e");
+    }
+
+    await _db.logAppOpen(packageName, lat: lat, lng: lng);
+    _appFrequencies = await _db.getAllFrequencies();
     await _refreshInsights();
     notifyListeners();
   }
 
-  List<AppInfo> getPredictedApps(List<AppInfo> allApps) {
-    final context = currentContext;
+  Future<List<AppInfo>> getPredictedApps(List<AppInfo> allApps) async {
+    if (!_isSmartMode) return allApps.take(4).toList();
 
-    // V1: Heuristic + Frequency (Hybrid)
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 2),
+      );
+
+      final db = await _db.database;
+      // Query apps used within ~500m of current location at similar time (+/- 2 hours)
+      final res = await db.rawQuery(
+        '''
+        SELECT packageName, COUNT(*) as count 
+        FROM app_usage_logs 
+        WHERE ABS(latitude - ?) < 0.005 
+          AND ABS(longitude - ?) < 0.005
+          AND ABS(hourOfDay - ?) < 3
+        GROUP BY packageName
+        ORDER BY count DESC
+        LIMIT 4
+      ''',
+        [pos.latitude, pos.longitude, DateTime.now().hour],
+      );
+
+      if (res.isNotEmpty) {
+        final predictedPackages = res
+            .map((e) => e['packageName'] as String)
+            .toSet();
+        return allApps
+            .where((a) => predictedPackages.contains(a.packageName))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("Smart prediction failed: $e");
+    }
+
+    // Fallback to time-based heuristic if geo-prediction fails or no data
+    final context = currentContext;
     return allApps
         .where((app) {
           final pkg = app.packageName.toLowerCase();
-          // final name = app.name.toLowerCase();
-
           switch (context) {
             case ContextTime.morning:
-              return pkg.contains('news') ||
-                  pkg.contains('weather') ||
-                  pkg.contains('calendar');
+              return pkg.contains('news') || pkg.contains('weather');
             case ContextTime.work:
-              return pkg.contains('mail') ||
-                  pkg.contains('slack') ||
-                  pkg.contains('note') ||
-                  pkg.contains('office');
+              return pkg.contains('mail') || pkg.contains('slack');
             case ContextTime.evening:
-              return pkg.contains('tube') ||
-                  pkg.contains('flix') ||
-                  pkg.contains('social') ||
-                  pkg.contains('music');
+              return pkg.contains('social') || pkg.contains('music');
             case ContextTime.night:
-              return pkg.contains('clock') ||
-                  pkg.contains('alarm') ||
-                  pkg.contains('meditate');
+              return pkg.contains('clock') || pkg.contains('alarm');
           }
         })
         .take(4)
@@ -66,18 +120,26 @@ class BehaviorEngine extends ChangeNotifier {
   }
 
   Future<void> _refreshInsights() async {
-    // Mock logic for V1 - Real logic would query DB for anomalies
     final newInsights = <String>[];
 
-    // Example: Distraction Insight
-    newInsights.add(
-      "SOCIAL_LIMIT: You've opened Instagram 12 times this hour. Try Mode: Focus?",
-    );
+    // Core Status Insights (Always present)
+    newInsights.add("SMART_MODE: Suggestions are hyper-localized.");
+    newInsights.add("NEURAL_ENGINE: Engagement tracking optimized.");
 
-    // Example: Relationship Insight
-    newInsights.add(
-      "RELATIONSHIP_GAP: Haven't connected with 'Mom' in 4 days.",
-    );
+    if (_isSmartMode) {
+      newInsights.add("LOCATION_SYNC: Real-time spatial tracking active.");
+    }
+
+    // Dynamic Behavioral Insights
+    final totalOpens = _appFrequencies.values.fold(0, (a, b) => a + b);
+    if (totalOpens > 0) {
+      final topApp = _appFrequencies.entries.reduce(
+        (a, b) => a.value > b.value ? a : b,
+      );
+      newInsights.add(
+        "ENGAGEMENT_ANALYTICS: ${topApp.key.split('.').last.toUpperCase()} is your primary node today.",
+      );
+    }
 
     _insights = newInsights;
   }
