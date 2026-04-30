@@ -60,9 +60,10 @@ class _HolographicFolderState extends State<HolographicFolder>
       children: [
         Expanded(
           child: Listener(
-            onPointerDown: (_) => _pointerCount++,
-            onPointerUp: (_) => _pointerCount--,
-            onPointerCancel: (_) => _pointerCount = 0,
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (_) => setState(() => _pointerCount++),
+            onPointerUp: (_) => setState(() => _pointerCount--),
+            onPointerCancel: (_) => setState(() => _pointerCount = 0),
             child: GestureDetector(
               onScaleUpdate: (details) {
                 if (_pointerCount < 2) return;
@@ -154,7 +155,9 @@ class _HolographicFolderState extends State<HolographicFolder>
     return GridView.builder(
       padding: EdgeInsets.zero,
       scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
+      physics: _pointerCount > 1
+          ? const NeverScrollableScrollPhysics()
+          : const BouncingScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         mainAxisSpacing: 4,

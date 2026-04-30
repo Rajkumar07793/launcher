@@ -618,6 +618,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () => Provider.of<LauncherService>(
                   context,
                   listen: false,
+                ).openDevelopmentSettings(),
+                icon: const Icon(Icons.code, size: 16),
+                label: const Text(
+                  "DEVELOPER_OPTIONS",
+                  style: TextStyle(fontSize: 10),
+                ),
+                style: TextButton.styleFrom(foregroundColor: Colors.white24),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => Provider.of<LauncherService>(
+                  context,
+                  listen: false,
                 ).openLauncherSettings(),
                 icon: const Icon(Icons.settings, size: 16),
                 label: const Text(

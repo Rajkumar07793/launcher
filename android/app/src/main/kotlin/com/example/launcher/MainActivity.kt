@@ -161,6 +161,17 @@ class MainActivity : FlutterActivity() {
                     val percent = (usedMem.toDouble() / memoryInfo.totalMem.toDouble() * 100).toInt()
                     result.success(mapOf("memoryUsage" to percent))
                 }
+                "getRunningAppsCount" -> {
+                    result.success(getRunningAppsCount())
+                }
+                "killAllApps" -> {
+                    killAllApps()
+                    result.success(true)
+                }
+                "openDevelopmentSettings" -> {
+                    openDevelopmentSettings()
+                    result.success(true)
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -212,6 +223,31 @@ class MainActivity : FlutterActivity() {
         val intent = Intent(Settings.ACTION_HOME_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
+    }
+
+    private fun openDevelopmentSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+
+    private fun getRunningAppsCount(): Int {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val endTime = System.currentTimeMillis()
+        val startTime = endTime - 1000 * 60 * 30 // Last 30 mins
+        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+        return stats.filter { it.totalTimeInForeground > 0 }.map { it.packageName }.distinct().size
+    }
+
+    private fun killAllApps() {
+        val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val pm = packageManager
+        val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+        for (app in apps) {
+            if (app.flags and ApplicationInfo.FLAG_SYSTEM == 0 && app.packageName != packageName) {
+                am.killBackgroundProcesses(app.packageName)
+            }
+        }
     }
 
     private fun hasUsagePermission(): Boolean {

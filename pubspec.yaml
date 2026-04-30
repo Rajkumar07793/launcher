@@ -44,6 +44,7 @@ dependencies:
   flutter_sms_inbox: ^1.0.4
   permission_handler: ^12.0.1
   image_picker: ^1.2.2
+  battery_plus: ^7.0.0
   # flutter_sms_inbox: ^1.1.0
 
 

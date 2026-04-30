@@ -101,6 +101,31 @@ class LauncherService extends ChangeNotifier {
     }
   }
 
+  Future<void> openDevelopmentSettings() async {
+    try {
+      await platform.invokeMethod('openDevelopmentSettings');
+    } on PlatformException catch (e) {
+      debugPrint("Failed to open developer settings: '${e.message}'.");
+    }
+  }
+
+  Future<int> getRunningAppsCount() async {
+    try {
+      return await platform.invokeMethod('getRunningAppsCount');
+    } on PlatformException catch (e) {
+      debugPrint("Failed to get running apps count: '${e.message}'.");
+      return 0;
+    }
+  }
+
+  Future<void> killAllApps() async {
+    try {
+      await platform.invokeMethod('killAllApps');
+    } on PlatformException catch (e) {
+      debugPrint("Failed to kill all apps: '${e.message}'.");
+    }
+  }
+
   Future<void> checkUsagePermission() async {
     try {
       _hasUsagePermission = await platform.invokeMethod('checkUsagePermission');
